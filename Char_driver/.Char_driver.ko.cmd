@@ -1,0 +1,1 @@
+cmd_/home/ens/AK82770/Documents/ele784/labo1/Char_driver/Char_driver.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/ens/AK82770/Documents/ele784/labo1/Char_driver/Char_driver.ko /home/ens/AK82770/Documents/ele784/labo1/Char_driver/Char_driver.o /home/ens/AK82770/Documents/ele784/labo1/Char_driver/Char_driver.mod.o
