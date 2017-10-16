@@ -28,18 +28,19 @@ Simple Driver to exchange bytes between programs.
 
 MODULE_LICENSE("Dual BSD/GPL");
 
-//Variables externes au kernel.
+//Variables externel au kernel.
 int Char_driver_Var = 0;
 module_param(Char_driver_Var, int, S_IRUGO);
 EXPORT_SYMBOL_GPL(Char_driver_Var);
 
 //Necessaire pour device et class creation.
+//Custom structure here!
 dev_t devno;
 struct class *Char_driver_class;
 struct cdev  Char_driver_cdev;
-
 char 		tampon[10] = {0,0,0,0,0,0,0,0,0,0};
 uint16_t num = 0;
+////////////////////////////////////////////////////
 
 int Char_driver_open(struct inode *inode, struct file *filp) {
 	printk(KERN_WARNING"Char_driver_open (%s:%u)\n", __FUNCTION__, __LINE__);
@@ -54,9 +55,16 @@ int Char_driver_release(struct inode *inode, struct file *filp) {
 static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos) {
 	char ch;
 
+	//printk(KERN_WARNING"Num is at ->%d \n", num);
+	printk(KERN_ALERT"Char_driver Num is at ->%d \n", num);
+	//printk(KERN_ALERT"HELLO ALL\n");
+	//printk(KERN_WARNING"Char_driver_read (%s:%u) count = %lu ch = %c\n", __FUNCTION__, __LINE__, count, ch);
+
 	if (num > 0) {
-		ch = tampon[--num];
+		//printk(KERN_ALERT"HELLO ALL\n");
+		ch = tampon[num];
 		copy_to_user(buf, &ch, 1);
+		--num;
 		printk(KERN_WARNING"Char_driver_read (%s:%u) count = %lu ch = %c\n", __FUNCTION__, __LINE__, count, ch);
 		return 1;
 	} else {
@@ -68,10 +76,12 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos) {
 	char ch;
 
+	printk(KERN_ALERT"Char_driver Num is at ->%d \n", num);
 
 	if (num < 10) {
 		copy_from_user(&ch, buf, 1);
-		tampon[num++] = ch;
+		tampon[num] = ch;
+		num++;
 		printk(KERN_WARNING"Char_driver_write (%s:%u) count = %lu ch = %c\n", __FUNCTION__, __LINE__, count, ch);
 		return 1;
 	} else {
@@ -95,7 +105,12 @@ static int __init Char_driver_init (void) {
 	//Creation du module + driver.
 	int result;
 
-	printk(KERN_ALERT"Installing Char_driver\n");
+	//ahah! "Char_driver" string must be in every printk for it to appear in dmesg.
+	printk(KERN_ALERT"Char_driver What the fuck?!?!\n");
+	printk(KERN_ALERT"Installing Char_driver!\n");
+
+	//printk(KERN_ALERT"Installing aliveornot!\n");
+
 	printk(KERN_ALERT"Char_driver_init (%s:%u) => Hello, World. From Char_driver  !!!\n", __FUNCTION__, __LINE__);
 
 	result = alloc_chrdev_region(&devno, 0, 1, "MyChar_driver");

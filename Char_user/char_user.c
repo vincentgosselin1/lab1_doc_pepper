@@ -93,20 +93,21 @@ void execute(int choice){
 			char string[10] = "This_is_me";
 			//printf("String is : %s\r\n",string);
 			int size = sizeof(string);
-			//printf("Size of the string is : %d\r\n",size);
+			int i = 0;//index for string.
+			printf("Size of the string is : %d\r\n",size);
 			int bytes_written = 0;//To count number of bytes written successfully.
 			int ret;//return value of every write.
 
-			//writing multiple bytes.
-			while(size!=0)
+			//writing the whole string.
+			while(i<size)
 			{
-				ret = write(fd, &string[bytes_written],1);
-				if(fd<0){
+				ret = write(fd, &string[i],1);
+				if(ret<0){
 					printf("ERROR in WRITING\r\n");
 					break;
 				}
 				bytes_written++;
-				size--;
+				i++;
 			}
 
 			printf("Success writing %d Bytes\r\n",bytes_written);
@@ -131,18 +132,22 @@ void execute(int choice){
 			char byte_received;
 			char storing_buffer[10];
 			int size = sizeof(storing_buffer);
-			int bytes_read = 10;//To count number of bytes read successfully.
-			int ret;//return value of every read.
+			printf("Size of the storing_buffer is : %d\r\n",size);
+			int i = 0; //index for read.
+			int bytes_read = 0;//To count number of bytes read successfully.
+			int ret=-1;//return value of every read.
 			
-			//End of file is reached when ret = 0.
-			while(ret!=0){
+			
+			while(i<size){
 				ret = read(fd, &byte_received ,1);
-				if(fd<0){
+				printf("ret value is : %d\r\n",ret);
+				if(ret<0){
 					printf("ERROR in READING\r\n");
 					break;
 				}
-				bytes_read--;
-				storing_buffer[bytes_read] = byte_received;
+				bytes_read++;
+				storing_buffer[i] = byte_received;
+				i++;
 				//printf("READ : %s from driver.\r\n", storing_buffer);
 			}
 			printf("Success in reading %d bytes from driver.\r\n",bytes_read);

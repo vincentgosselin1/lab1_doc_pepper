@@ -7,3 +7,6 @@ all: ele784_driver
 ele784_driver:
 	@echo "Building Char_user"
 	gcc char_user.c -o Char_user
+
+#clean:
+#    -rm -f *.tmp_versions
