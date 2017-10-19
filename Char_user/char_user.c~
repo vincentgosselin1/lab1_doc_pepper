@@ -90,27 +90,22 @@ void execute(int choice){
 			}
 
 			//Writing into Char_driver
-			char string[10] = "This_is_me";
-			//printf("String is : %s\r\n",string);
+			//char string[10] = {'T','h','i','s','_','i','s','_','m','e'};
+			char string[10] = "smokejack\0";
+			printf("String is : %s\r\n",string);
 			int size = sizeof(string);
 			int i = 0;//index for string.
 			printf("Size of the string is : %d\r\n",size);
-			int bytes_written = 0;//To count number of bytes written successfully.
 			int ret;//return value of every write.
 
 			//writing the whole string.
-			while(i<size)
-			{
-				ret = write(fd, &string[i],1);
+			ret = write(fd, string, 9);
 				if(ret<0){
 					printf("ERROR in WRITING\r\n");
 					break;
 				}
-				bytes_written++;
-				i++;
-			}
 
-			printf("Success writing %d Bytes\r\n",bytes_written);
+			printf("Success writing 10 Bytes\r\n");
 			
 		   break; /* optional */
 		}
@@ -129,29 +124,20 @@ void execute(int choice){
 
 
 			//Reading from Char_driver
-			char byte_received;
-			char storing_buffer[10];
-			int size = sizeof(storing_buffer);
-			printf("Size of the storing_buffer is : %d\r\n",size);
-			int i = 0; //index for read.
-			int bytes_read = 0;//To count number of bytes read successfully.
+			char bytes_received[10];
+			int size = sizeof(bytes_received);
+			printf("Size of the bytes_received is : %d\r\n",size);
 			int ret=-1;//return value of every read.
 			
-			
-			while(i<size){
-				ret = read(fd, &byte_received ,1);
+				ret = read(fd, &bytes_received , 9);
 				printf("ret value is : %d\r\n",ret);
 				if(ret<0){
 					printf("ERROR in READING\r\n");
 					break;
 				}
-				bytes_read++;
-				storing_buffer[i] = byte_received;
-				i++;
-				//printf("READ : %s from driver.\r\n", storing_buffer);
-			}
-			printf("Success in reading %d bytes from driver.\r\n",bytes_read);
-			printf("Storing_buffer is : %s\r\n", storing_buffer);
+				
+			printf("Success in reading 10 bytes from driver.\r\n");
+			printf("bytes_received are : %s\r\n", bytes_received);
 			
 		}
 

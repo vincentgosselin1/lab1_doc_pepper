@@ -38,7 +38,7 @@ EXPORT_SYMBOL_GPL(Char_driver_Var);
 dev_t devno;
 struct class *Char_driver_class;
 struct cdev  Char_driver_cdev;
-char 		tampon[10] = {0,0,0,0,0,0,0,0,0,0};
+char 		circular_buffer[10] = {0,0,0,0,0,0,0,0,0,0};
 uint16_t num = 0;
 ////////////////////////////////////////////////////
 
@@ -53,41 +53,55 @@ int Char_driver_release(struct inode *inode, struct file *filp) {
 }
 
 static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos) {
-	char ch;
+
+		char tampon_for_user[10] = {0};
+		int i;
 
 	//printk(KERN_WARNING"Num is at ->%d \n", num);
-	printk(KERN_ALERT"Char_driver Num is at ->%d \n", num);
+	//printk(KERN_ALERT"Char_driver Num is at ->%d \n", num);
 	//printk(KERN_ALERT"HELLO ALL\n");
 	//printk(KERN_WARNING"Char_driver_read (%s:%u) count = %lu ch = %c\n", __FUNCTION__, __LINE__, count, ch);
 
-	if (num > 0) {
+	
 		//printk(KERN_ALERT"HELLO ALL\n");
-		ch = tampon[num];
-		copy_to_user(buf, &ch, 1);
-		--num;
-		printk(KERN_WARNING"Char_driver_read (%s:%u) count = %lu ch = %c\n", __FUNCTION__, __LINE__, count, ch);
+	
+		printk(KERN_WARNING"Char_driver_read (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, circular_buffer);
+		
+		for(i = 0;i<10;i++){
+			tampon_for_user[i] = circular_buffer[i];	
+		}
+
+		printk(KERN_WARNING"Char_driver_read (%s:%u), tampon_for_user is : %s\n", __FUNCTION__, __LINE__, tampon_for_user);
+		copy_to_user(buf, tampon_for_user, 10);
+
+		//printk(KERN_WARNING"Char_driver_read (%s:%u) count = %lu ch = %c\n", __FUNCTION__, __LINE__, count, ch);
 		return 1;
-	} else {
-		printk(KERN_WARNING"Char_driver_read (%s:%u) count = %lu ch = no char\n", __FUNCTION__, __LINE__, count);
-		return 0;
-	}
+	
 }
 
 static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos) {
-	char ch;
 
-	printk(KERN_ALERT"Char_driver Num is at ->%d \n", num);
+		char tampon_from_user[10] = {0};
+		int i;
 
-	if (num < 10) {
-		copy_from_user(&ch, buf, 1);
-		tampon[num] = ch;
-		num++;
-		printk(KERN_WARNING"Char_driver_write (%s:%u) count = %lu ch = %c\n", __FUNCTION__, __LINE__, count, ch);
+
+		//printk(KERN_ALERT"Char_driver Num is at ->%d \n", num);
+
+		int ret;
+
+		
+		ret = copy_from_user(tampon_from_user, buf, 10);
+		if(ret == 0){
+		printk(KERN_WARNING"Char_driver_read (%s:%u), tampon_from_user is : %s\n", __FUNCTION__, __LINE__, tampon_from_user);
+		}		
+
+		//Then, add it to circular_buffer (NOT CIRCULAR YET).
+		//circular_buffer = tampon_from_user;
+		for(i = 0;i<10;i++){
+			circular_buffer[i] = tampon_from_user[i];	
+		}
+	
 		return 1;
-	} else {
-		printk(KERN_WARNING"Char_driver_write (%s:%u) count = %lu ch = no place\n", __FUNCTION__, __LINE__, count);
-		return 0;
-	}
 }
 
 struct file_operations Char_driver_fops = {
@@ -105,7 +119,7 @@ static int __init Char_driver_init (void) {
 	//Creation du module + driver.
 	int result;
 
-	//ahah! "Char_driver" string must be in every printk for it to appear in dmesg.
+	//ahah! "Char_driver" string must be in every printk for it to appear in dmesg. Ofcourse, grep is looking for Char_driver..
 	printk(KERN_ALERT"Char_driver What the fuck?!?!\n");
 	printk(KERN_ALERT"Installing Char_driver!\n");
 
