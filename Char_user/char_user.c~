@@ -130,7 +130,7 @@ void execute(int choice){
 			int ret=-1;//return value of every read.
 			
 				ret = read(fd, &bytes_received , 9);
-				printf("ret value is : %d\r\n",ret);
+				//printf("ret value is : %d\r\n",ret);
 				if(ret<0){
 					printf("ERROR in READING\r\n");
 					break;

@@ -35,11 +35,35 @@ EXPORT_SYMBOL_GPL(Char_driver_Var);
 
 //Necessaire pour device et class creation.
 //Custom structure here!
-dev_t devno;
-struct class *Char_driver_class;
-struct cdev  Char_driver_cdev;
+//dev_t devno;
+//struct class *Char_driver_class;
+//struct cdev  Char_driver_cdev;
 char 		circular_buffer[10] = {0,0,0,0,0,0,0,0,0,0};
 uint16_t num = 0;
+
+//Le device qui va etre controller. "voit le comme un port serie".
+//struct BufStruct {
+//	unsigned int InIdx;
+//	
+//}
+
+struct Custom_structure {
+
+	//Read and write control
+	unsigned short *ReadBuf;
+	unsigned short *WriteBuf;
+	struct semaphore SemBuf;
+	unsigned short numWriter;
+	unsigned short numReader;
+
+	//needed for device and class creation.	
+	struct class *Char_driver_class;
+	dev_t devno;
+	struct cdev  Char_driver_cdev;
+} Custom_struct;
+
+
+
 ////////////////////////////////////////////////////
 
 int Char_driver_open(struct inode *inode, struct file *filp) {
@@ -127,17 +151,17 @@ static int __init Char_driver_init (void) {
 
 	printk(KERN_ALERT"Char_driver_init (%s:%u) => Hello, World. From Char_driver  !!!\n", __FUNCTION__, __LINE__);
 
-	result = alloc_chrdev_region(&devno, 0, 1, "MyChar_driver");
+	result = alloc_chrdev_region(&Custom_struct.devno, 0, 1, "MyChar_driver");
 	if (result < 0)
 		printk(KERN_WARNING"Char_driver_init ERROR IN alloc_chrdev_region (%s:%s:%u)\n", __FILE__, __FUNCTION__, __LINE__);
 	else
-		printk(KERN_WARNING"Char_driver_init : MAJOR = %u MINOR = %u (Char_driver_Var = %u)\n", MAJOR(devno), MINOR(devno), Char_driver_Var);
+		printk(KERN_WARNING"Char_driver_init : MAJOR = %u MINOR = %u (Char_driver_Var = %u)\n", MAJOR(Custom_struct.devno), MINOR(Custom_struct.devno), Char_driver_Var);
 
-	Char_driver_class = class_create(THIS_MODULE, "Char_driverClass");
-	device_create(Char_driver_class, NULL, devno, NULL, "etsele_cdev");//Important, seulement le device "etsele_cdev" a les droits sudo.
-	cdev_init(&Char_driver_cdev, &Char_driver_fops);
-	Char_driver_cdev.owner = THIS_MODULE;
-	if (cdev_add(&Char_driver_cdev, devno, 1) < 0)
+	Custom_struct.Char_driver_class = class_create(THIS_MODULE, "Char_driverClass");
+	device_create(Custom_struct.Char_driver_class, NULL, Custom_struct.devno, NULL, "etsele_cdev");//Important, seulement le device "etsele_cdev" a les droits sudo.
+	cdev_init(&Custom_struct.Char_driver_cdev, &Char_driver_fops);
+	Custom_struct.Char_driver_cdev.owner = THIS_MODULE;
+	if (cdev_add(&Custom_struct.Char_driver_cdev, Custom_struct.devno, 1) < 0)
 		printk(KERN_WARNING"Char_driver ERROR IN cdev_add (%s:%s:%u)\n", __FILE__, __FUNCTION__, __LINE__);
 
 
@@ -153,10 +177,10 @@ static void __exit Char_driver_exit (void) {
 	
 	printk(KERN_ALERT"Uninstalling Char_driver\n");
 
-	cdev_del(&Char_driver_cdev);
-	unregister_chrdev_region(devno, 1);
-	device_destroy (Char_driver_class, devno);
-	class_destroy(Char_driver_class);
+	cdev_del(&Custom_struct.Char_driver_cdev);
+	unregister_chrdev_region(Custom_struct.devno, 1);
+	device_destroy (Custom_struct.Char_driver_class, Custom_struct.devno);
+	class_destroy(Custom_struct.Char_driver_class);
 
 	printk(KERN_ALERT"Char_driver_exit (%s:%u) => Goodbye, cruel world\n", __FUNCTION__, __LINE__);
 }
