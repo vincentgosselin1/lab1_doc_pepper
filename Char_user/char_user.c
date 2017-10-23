@@ -86,7 +86,7 @@ void execute(int choice){
 			{
 
 			//Writing into Char_driver
-			char string[10] = "smokejack\0";
+			char string[10] = "smokejacko";
 			printf("String is : %s\r\n",string);
 			int size = sizeof(string);
 			int i = 0;//index for string.
@@ -148,7 +148,7 @@ void execute(int choice){
 			{
 
 			//Reading from Char_driver
-			char bytes_received[10];
+			char bytes_received[11];
 			int size = sizeof(bytes_received);
 			printf("Size of the bytes_received is : %d\r\n",size);
 			int ret=-1;//return value of every read.
@@ -159,6 +159,8 @@ void execute(int choice){
 					printf("ERROR in READING\r\n");
 					break;
 				}
+				//terminate bytes_received with '\0' character.
+				bytes_received[10] = '\0';
 				
 			printf("Success in reading 10 bytes from driver.\r\n");
 			printf("bytes_received are : %s\r\n", bytes_received);
@@ -218,7 +220,7 @@ void execute(int choice){
 								no_more_request = 0;
 
 								//Writing into Char_driver
-								char string[10] = "smokejack\0";
+								char string[10] = "smokejacko";
 								printf("String is : %s\r\n",string);
 								int size = sizeof(string);
 								int i = 0;//index for string.
@@ -240,7 +242,7 @@ void execute(int choice){
 								no_more_request = 0;
 
 								//Reading from Char_driver
-								char bytes_received[10];
+								char bytes_received[11];
 								int size = sizeof(bytes_received);
 								printf("Size of the bytes_received is : %d\r\n",size);
 								int ret=-1;//return value of every read.
@@ -251,6 +253,8 @@ void execute(int choice){
 									printf("ERROR in READING\r\n");
 									break;
 								}
+								//terminate bytes_received with '\0' character.
+								bytes_received[10] = '\0';
 				
 								printf("Success in reading 10 bytes from driver.\r\n");
 								printf("bytes_received are : %s\r\n", bytes_received);

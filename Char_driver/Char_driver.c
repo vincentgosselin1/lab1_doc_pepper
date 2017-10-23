@@ -69,6 +69,38 @@ struct Buf_Dev {
 } BDev;
 /////////////////////////////////////////////////////////////////
 
+
+//circular_buffer Functions
+//Puts 1 character in the Circular buffer.
+int BufIn(struct BufStruct *Buf, char *Data) {
+	//if(Buf->BufFull)
+	//	return -1;
+	//Buf->BufEmpty = 0;
+	Buf->circular_buffer[Buf->InIdx] = *Data;
+	Buf->InIdx = (Buf->InIdx + 1) % Buf->BufSize;
+	//if(Buf->InIdx == Buf->OutIdx)
+	//	Buf->BufFull = 1;
+	//printk(KERN_ALERT"Char_driver, Buf->InIdx is AT : %i\n", Buf->InIdx );
+	//printk(KERN_ALERT"Char_driver, putting %c in circular buffer\n", *Data);
+	return 0;
+}
+
+int BufOut(struct BufStruct *Buf, char *Data) {
+	//if(Buf->BufEmpty)
+	//	return -1;
+	//Buf->BufFull = 0;
+	//printk(KERN_ALERT"Char_driver, Buf->OutIdx is AT : %i\n", Buf->OutIdx );
+	*Data = Buf->circular_buffer[Buf->OutIdx];
+	//printk(KERN_ALERT"Char_driver, HERE???\n");
+	Buf->OutIdx = (Buf->OutIdx + 1) % Buf->BufSize;
+	//if(Buf->OutIdx == Buf->InIdx)
+	//	Buf->BufEmpty = 1;
+	//printk(KERN_ALERT"Char_driver Got here? BUFOUT\n");
+	return 0;
+}
+
+
+
 int Char_driver_open(struct inode *inode, struct file *filp) {
 	printk(KERN_WARNING"Char_driver_open (%s:%u)\n", __FUNCTION__, __LINE__);
 	return 0;
@@ -83,6 +115,7 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 
 		char tampon_for_user[10] = {0};
 		int i;
+		char char_received = '?';
 
 	//printk(KERN_WARNING"Num is at ->%d \n", num);
 	//printk(KERN_ALERT"Char_driver Num is at ->%d \n", num);
@@ -92,12 +125,15 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 	
 		//printk(KERN_ALERT"HELLO ALL\n");
 	
-		printk(KERN_WARNING"Char_driver_read (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, Buffer.circular_buffer);
 		
 		for(i = 0;i<10;i++){
-			tampon_for_user[i] = Buffer.circular_buffer[i];	
+			//tampon_for_user[i] = Buffer.circular_buffer[i];
+			//char * char_received = NULL;
+			BufOut(&Buffer, &char_received);	
+			tampon_for_user[i] = char_received;
 		}
 
+		printk(KERN_WARNING"Char_driver_read (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, Buffer.circular_buffer);
 		printk(KERN_WARNING"Char_driver_read (%s:%u), tampon_for_user is : %s\n", __FUNCTION__, __LINE__, tampon_for_user);
 		copy_to_user(buf, tampon_for_user, 10);
 
@@ -109,6 +145,7 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos) {
 
 		char tampon_from_user[10] = {0};
+		char char_to_transfer;
 		int i;
 
 
@@ -125,9 +162,14 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 		//Then, add it to circular_buffer (NOT CIRCULAR YET).
 		//circular_buffer = tampon_from_user;
 		for(i = 0;i<10;i++){
-			Buffer.circular_buffer[i] = tampon_from_user[i];	
+			//Buffer.circular_buffer[i] = tampon_from_user[i];
+			printk(KERN_WARNING"Char_driver_write (%s:%u), tampon_from_user[i] is : %c\n", __FUNCTION__, __LINE__, tampon_from_user[i]);	
+			char_to_transfer = tampon_from_user[i];
+			BufIn(&Buffer, &char_to_transfer);
 		}
-	
+		
+		printk(KERN_WARNING"Char_driver_write (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, Buffer.circular_buffer);	
+
 		return 1;
 }
 
@@ -150,7 +192,7 @@ static int __init Char_driver_init (void) {
 	int i;
 
 	//ahah! "Char_driver" string must be in every printk for it to appear in dmesg. Ofcourse, grep is looking for Char_driver..
-	printk(KERN_ALERT"Char_driver What the fuck?!?!\n");
+
 	printk(KERN_ALERT"Installing Char_driver!\n");
 
 	//printk(KERN_ALERT"Installing aliveornot!\n");
@@ -178,11 +220,23 @@ static int __init Char_driver_init (void) {
 	} else {
 		printk(KERN_ALERT"Char_driver 50 bytes of memory for the circular buffer\n");
 	}
-	//int i;
-	for(i=0;i<DEFAULT_SIZE_BUFFER;i++)
+	for(i=0;i<DEFAULT_SIZE_BUFFER-1;i++)
 	{
-	Buffer.circular_buffer[i] = ' ';//initialize one by one with a ' '.
+		Buffer.circular_buffer[i] = '$';//initialize one by one with a '$' except last character.
 	}
+	Buffer.circular_buffer[i] = '\0';//terminate char array with '\0'
+	printk(KERN_WARNING"Char_driver_init (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, Buffer.circular_buffer);
+
+	//init Buffer size.
+	Buffer.BufSize = DEFAULT_SIZE_BUFFER;
+
+	//init InIdx,OutIdx.
+	Buffer.InIdx = 0;
+	Buffer.OutIdx = 0;
+
+	//init BufFull, BufEmpty.
+	Buffer.BufFull = 0;
+	Buffer.BufEmpty = 0;//not empty at start?
 
 	return 0;
 }
