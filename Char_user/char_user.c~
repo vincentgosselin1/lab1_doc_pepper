@@ -258,8 +258,10 @@ void execute(int choice){
 							}
 
 					case 3 :
-							no_more_request = 1;
-							break;
+							{
+								no_more_request = 1;
+								break;
+							}
 				}
 
 			}//while to read/write again.
@@ -271,6 +273,12 @@ void execute(int choice){
 				printf("ERROR in closing\r\n");
 			}
 
+			break;
+		}
+		//4 for Returning number of bytes in buffer.
+		case 4 : 
+		{
+			//to do.
 			break;
 		}
 		//5 for Returning number of readers

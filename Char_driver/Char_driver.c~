@@ -26,6 +26,9 @@ Simple Driver to exchange bytes between programs.
 #include <asm/uaccess.h>
 #include <asm/atomic.h>
 
+//CUSTOM DEFINES
+#define DEFAULT_SIZE_BUFFER 50
+
 MODULE_LICENSE("Dual BSD/GPL");
 
 //Variables externel au kernel.
@@ -33,26 +36,24 @@ int Char_driver_Var = 0;
 module_param(Char_driver_Var, int, S_IRUGO);
 EXPORT_SYMBOL_GPL(Char_driver_Var);
 
-//Necessaire pour device et class creation.
-//Custom structure here!
-//dev_t devno;
-//struct class *Char_driver_class;
-//struct cdev  Char_driver_cdev;
-//char 		circular_buffer[10] = {0,0,0,0,0,0,0,0,0,0};
 
-//Le device qui va etre controller. "voit le comme un port serie".
-//struct BufStruct {
-//	unsigned int InIdx;
-//	
-//}
-
-/////////////////////////////////////////////////////////////////
-/* Custom structure to put everything global to program inside */
-/////////////////////////////////////////////////////////////////
-struct Custom_structure {
-
+//////////////////////////////////////////////////////////////////
+/* Custom structures to put everything global to program inside */
+//////////////////////////////////////////////////////////////////
+struct BufStruct {
 	//Circular Buffer usefull stuff
-	char circular_buffer[10];
+	//char circular_buffer[10];
+	
+	unsigned int InIdx;
+	unsigned int OutIdx;
+	unsigned short BufFull;
+	unsigned short BufEmpty;
+	unsigned int BufSize;
+	char * circular_buffer;
+
+} Buffer;
+
+struct Buf_Dev {
 
 	//Read and write control
 	unsigned short *ReadBuf;
@@ -65,7 +66,7 @@ struct Custom_structure {
 	struct class *Char_driver_class;
 	dev_t devno;
 	struct cdev  Char_driver_cdev;
-} Custom_struct;
+} BDev;
 /////////////////////////////////////////////////////////////////
 
 int Char_driver_open(struct inode *inode, struct file *filp) {
@@ -91,10 +92,10 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 	
 		//printk(KERN_ALERT"HELLO ALL\n");
 	
-		printk(KERN_WARNING"Char_driver_read (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, Custom_struct.circular_buffer);
+		printk(KERN_WARNING"Char_driver_read (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, Buffer.circular_buffer);
 		
 		for(i = 0;i<10;i++){
-			tampon_for_user[i] = Custom_struct.circular_buffer[i];	
+			tampon_for_user[i] = Buffer.circular_buffer[i];	
 		}
 
 		printk(KERN_WARNING"Char_driver_read (%s:%u), tampon_for_user is : %s\n", __FUNCTION__, __LINE__, tampon_for_user);
@@ -124,7 +125,7 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 		//Then, add it to circular_buffer (NOT CIRCULAR YET).
 		//circular_buffer = tampon_from_user;
 		for(i = 0;i<10;i++){
-			Custom_struct.circular_buffer[i] = tampon_from_user[i];	
+			Buffer.circular_buffer[i] = tampon_from_user[i];	
 		}
 	
 		return 1;
@@ -156,30 +157,31 @@ static int __init Char_driver_init (void) {
 
 	printk(KERN_ALERT"Char_driver_init (%s:%u) => Hello, World. From Char_driver  !!!\n", __FUNCTION__, __LINE__);
 
-	result = alloc_chrdev_region(&Custom_struct.devno, 0, 1, "MyChar_driver");
+	result = alloc_chrdev_region(&BDev.devno, 0, 1, "MyChar_driver");
 	if (result < 0)
 		printk(KERN_WARNING"Char_driver_init ERROR IN alloc_chrdev_region (%s:%s:%u)\n", __FILE__, __FUNCTION__, __LINE__);
 	else
-		printk(KERN_WARNING"Char_driver_init : MAJOR = %u MINOR = %u (Char_driver_Var = %u)\n", MAJOR(Custom_struct.devno), MINOR(Custom_struct.devno), Char_driver_Var);
+		printk(KERN_WARNING"Char_driver_init : MAJOR = %u MINOR = %u (Char_driver_Var = %u)\n", MAJOR(BDev.devno), MINOR(BDev.devno), Char_driver_Var);
 
-	Custom_struct.Char_driver_class = class_create(THIS_MODULE, "Char_driverClass");
-	device_create(Custom_struct.Char_driver_class, NULL, Custom_struct.devno, NULL, "etsele_cdev");//Important, seulement le device "etsele_cdev" a les droits sudo.
-	cdev_init(&Custom_struct.Char_driver_cdev, &Char_driver_fops);
-	Custom_struct.Char_driver_cdev.owner = THIS_MODULE;
-	if (cdev_add(&Custom_struct.Char_driver_cdev, Custom_struct.devno, 1) < 0)
+	BDev.Char_driver_class = class_create(THIS_MODULE, "Char_driverClass");
+	device_create(BDev.Char_driver_class, NULL, BDev.devno, NULL, "etsele_cdev");//Important, seulement le device "etsele_cdev" a les droits sudo.
+	cdev_init(&BDev.Char_driver_cdev, &Char_driver_fops);
+	BDev.Char_driver_cdev.owner = THIS_MODULE;
+	if (cdev_add(&BDev.Char_driver_cdev, BDev.devno, 1) < 0)
 		printk(KERN_WARNING"Char_driver ERROR IN cdev_add (%s:%s:%u)\n", __FILE__, __FUNCTION__, __LINE__);
 
-
-	//Init membres de Custom_struct
-	//Custom_struct.circular_buffer = {};//Everything at '0'.
-	//Custom_struct.circular_buffer = {0,0,0,0,0,0,0,0,0,0};
-	//strcpy(Custom_struct.circular_buffer, {}
-
 	//init the entire circular buffer
+	//kmalloc is used to allocate 50 bytes of memory for circular_buffer.
+	Buffer.circular_buffer = kmalloc(DEFAULT_SIZE_BUFFER, GFP_USER); //GFP_USER on behalf of user.
+	if(Buffer.circular_buffer == NULL){
+		printk(KERN_ALERT"Char_driver Could not allow 50 bytes of memory\n");
+	} else {
+		printk(KERN_ALERT"Char_driver 50 bytes of memory for the circular buffer\n");
+	}
 	//int i;
-	for(i=0;i<10;i++)
+	for(i=0;i<DEFAULT_SIZE_BUFFER;i++)
 	{
-	Custom_struct.circular_buffer[i] = '0';//initialize one by one...
+	Buffer.circular_buffer[i] = ' ';//initialize one by one with a ' '.
 	}
 
 	return 0;
@@ -191,10 +193,10 @@ static void __exit Char_driver_exit (void) {
 	
 	printk(KERN_ALERT"Uninstalling Char_driver\n");
 
-	cdev_del(&Custom_struct.Char_driver_cdev);
-	unregister_chrdev_region(Custom_struct.devno, 1);
-	device_destroy (Custom_struct.Char_driver_class, Custom_struct.devno);
-	class_destroy(Custom_struct.Char_driver_class);
+	cdev_del(&BDev.Char_driver_cdev);
+	unregister_chrdev_region(BDev.devno, 1);
+	device_destroy (BDev.Char_driver_class, BDev.devno);
+	class_destroy(BDev.Char_driver_class);
 
 	printk(KERN_ALERT"Char_driver_exit (%s:%u) => Goodbye, cruel world\n", __FUNCTION__, __LINE__);
 }

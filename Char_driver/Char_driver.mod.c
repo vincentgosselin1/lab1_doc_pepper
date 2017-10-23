@@ -19,6 +19,7 @@ __used
 __attribute__((section("__versions"))) = {
 	{ 0xf4edea6c, __VMLINUX_SYMBOL_STR(module_layout) },
 	{ 0xfbbd2ff7, __VMLINUX_SYMBOL_STR(cdev_del) },
+	{ 0x10380b27, __VMLINUX_SYMBOL_STR(kmalloc_caches) },
 	{ 0xc13c3f5e, __VMLINUX_SYMBOL_STR(cdev_init) },
 	{ 0xb6b46a7c, __VMLINUX_SYMBOL_STR(param_ops_int) },
 	{ 0x433a3e9e, __VMLINUX_SYMBOL_STR(device_destroy) },
@@ -28,6 +29,7 @@ __attribute__((section("__versions"))) = {
 	{ 0x3e224927, __VMLINUX_SYMBOL_STR(device_create) },
 	{ 0xc9f929cc, __VMLINUX_SYMBOL_STR(cdev_add) },
 	{ 0xbdfb6dbb, __VMLINUX_SYMBOL_STR(__fentry__) },
+	{ 0xedc1a25a, __VMLINUX_SYMBOL_STR(kmem_cache_alloc_trace) },
 	{ 0x29ab8277, __VMLINUX_SYMBOL_STR(class_destroy) },
 	{ 0x4f6b400b, __VMLINUX_SYMBOL_STR(_copy_from_user) },
 	{ 0x662dbccf, __VMLINUX_SYMBOL_STR(__class_create) },

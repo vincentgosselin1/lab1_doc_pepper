@@ -275,6 +275,12 @@ void execute(int choice){
 
 			break;
 		}
+		//4 for Returning number of bytes in buffer.
+		case 4 : 
+		{
+			//to do.
+			break;
+		}
 		//5 for Returning number of readers
 		case 5 : 
 		{
