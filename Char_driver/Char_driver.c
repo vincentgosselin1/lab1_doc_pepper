@@ -118,7 +118,7 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 		
 		ret = copy_from_user(tampon_from_user, buf, 10);
 		if(ret == 0){
-		printk(KERN_WARNING"Char_driver_read (%s:%u), tampon_from_user is : %s\n", __FUNCTION__, __LINE__, tampon_from_user);
+		printk(KERN_WARNING"Char_driver_write (%s:%u), tampon_from_user is : %s\n", __FUNCTION__, __LINE__, tampon_from_user);
 		}		
 
 		//Then, add it to circular_buffer (NOT CIRCULAR YET).
