@@ -30,6 +30,7 @@ __attribute__((section("__versions"))) = {
 	{ 0xc9f929cc, __VMLINUX_SYMBOL_STR(cdev_add) },
 	{ 0xbdfb6dbb, __VMLINUX_SYMBOL_STR(__fentry__) },
 	{ 0xedc1a25a, __VMLINUX_SYMBOL_STR(kmem_cache_alloc_trace) },
+	{ 0x37a0cba, __VMLINUX_SYMBOL_STR(kfree) },
 	{ 0x29ab8277, __VMLINUX_SYMBOL_STR(class_destroy) },
 	{ 0x4f6b400b, __VMLINUX_SYMBOL_STR(_copy_from_user) },
 	{ 0x662dbccf, __VMLINUX_SYMBOL_STR(__class_create) },
