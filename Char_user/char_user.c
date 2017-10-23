@@ -93,10 +93,10 @@ void execute(int choice){
 			{
 
 				//Writing into Char_driver
-				/*
+				
 				//Type what you want to put in the buffer:
 				printf("Type what you want to put in the buffer \r\n");
-				//user_input for test : This_is_me_and_this_is_you_bad 30 characters long.
+				//user_input for test : This_is_me_and_this_is_you_bad is 30 characters long.
 				char * user_input = scan_text_input();
 				printf("You typed : %s \r\n", user_input);
 				int user_input_len = strlen(user_input);
@@ -106,7 +106,7 @@ void execute(int choice){
 				//user_input[user_input_len-1] = ' ';
 				//if above 10 characters long
 
-				int bloc_written = 0;//to keep track of how many blocs (of 10 bytes) were sent.
+				
 				while(user_input_index<user_input_len)
 				{
 					char temp[10];//used to parse 10 characters at the time from user input.
@@ -115,6 +115,11 @@ void execute(int choice){
 					{
 						temp[i] = user_input[user_input_index];
 						user_input_index++;
+						//When user_input_lenght is reach, fill with '&' character in buffer to send (temp). '&' will need to be removed in driver..
+						if(user_input_index>user_input_len)
+						{
+							temp[i] = '&';
+						}
 					}			
 					int ret;//return value of every write.
 					//writing the whole string. 
@@ -122,13 +127,13 @@ void execute(int choice){
 					if(ret<0){ printf("ERROR in WRITING\r\n"); break; }
 					//printf("user_input_index is at  : %d\r\n",user_input_index);
 					//printf("Success writing %d Bytes\r\n",user_input_index-(bloc_written*10));
-					printf("Success writing %d Bytes\r\n",user_input_len);
-					bloc_written++;
+					//printf("Success writing %d Bytes\r\n",user_input_len);
 				}
-				*/
+				printf("Success writing %d Bytes\r\n",user_input_len);
 				
 				
-									
+				
+									/*
 									//Writing into Char_driver
 									char string[10] = "applejacks";
 									printf("String is : %s\r\n",string);
@@ -144,7 +149,7 @@ void execute(int choice){
 											break;
 										}
 									printf("Success writing 10 Bytes\r\n");
-									
+									*/
 									
 									
 
