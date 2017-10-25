@@ -102,11 +102,9 @@ void execute(int choice){
 				int user_input_len = strlen(user_input);
 				printf("Size of user_input_len is : %d\r\n",user_input_len);
 				int user_input_index = 0; //used to parse 10 characters at the time.
-				//replacing '/0' to a ' '. This way we will be able to see new words in buffer.
-				//user_input[user_input_len-1] = ' ';
-				//if above 10 characters long
-
 				
+
+				//To output every character in buffer.
 				while(user_input_index<user_input_len)
 				{
 					char temp[10];//used to parse 10 characters at the time from user input.
