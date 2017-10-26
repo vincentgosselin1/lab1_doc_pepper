@@ -102,52 +102,95 @@ void execute(int choice){
 				int user_input_len = strlen(user_input);
 				printf("Size of user_input_len is : %d\r\n",user_input_len);
 				int user_input_index = 0; //used to parse 10 characters at the time.
-				
 
+				
 				//To output every character in buffer.
-				while(user_input_index<user_input_len)
-				{
-					char temp[10];//used to parse 10 characters at the time from user input.
-					int i;
-					for(i=0;i<10;i++)
-					{
-						temp[i] = user_input[user_input_index];
-						user_input_index++;
-						//When user_input_lenght is reach, fill with '&' character in buffer to send (temp). '&' will need to be removed in driver..
-						if(user_input_index>user_input_len)
-						{
-							temp[i] = '&';
-						}
-					}			
+				// string to test is "This_is_me_vincent_gosselin", 27 characters long.
+					char tempbuf[11];//used to parse 10 characters (or less) at the time from user input into driver.
+					int i;//index to copy user input in temp.
+					int number_of_tempbuf_to_send = (user_input_len - (user_input_len%10))/10; //results in 2.
+					int j;//counting number of buffer of size 10 to send.
+					int number_of_char_in_last_transfer = user_input_len%10;//results in 7.
 					int ret;//return value of every write.
-					//writing the whole string. 
-					ret = write(fd, temp, 9);
-					if(ret<0){ printf("ERROR in WRITING\r\n"); break; }
-					//printf("user_input_index is at  : %d\r\n",user_input_index);
-					//printf("Success writing %d Bytes\r\n",user_input_index-(bloc_written*10));
-					//printf("Success writing %d Bytes\r\n",user_input_len);
-				}
-				printf("Success writing %d Bytes\r\n",user_input_len);
-				
-				
-				
-									/*
-									//Writing into Char_driver
-									char string[10] = "applejacks";
-									printf("String is : %s\r\n",string);
-									int size = sizeof(string);
-									int i = 0;//index for string.
-									printf("Size of the string is : %d\r\n",size);
-									int ret;//return value of every write.
 
-									//writing the whole string. 
-									ret = write(fd, string, 9);
-										if(ret<0){
-											printf("ERROR in WRITING\r\n");
-											break;
-										}
-									printf("Success writing 10 Bytes\r\n");
-									*/
+					//Sends 10 characters everytime.
+					for(j=0;j<number_of_tempbuf_to_send;j++)
+					{
+						for(i=0;i<10;i++)
+						{
+						tempbuf[i] = user_input[user_input_index];
+						user_input_index++;
+						}
+						//writing 10 characters at time.
+						ret = write(fd, tempbuf, 10);
+						if(ret<0){ printf("ERROR in WRITING\r\n"); break; }
+						
+						tempbuf[10] = '\0';
+						printf("temp_buf was : %s\r\n",tempbuf);
+					}
+					//printf("number_of_char_in_last_transfer is : %d\r\n",number_of_char_in_last_transfer);
+					//Sends less than 10 characters.
+					for(i=0;i<number_of_char_in_last_transfer;i++)
+					{
+						tempbuf[i] = user_input[user_input_index];
+						user_input_index++;
+					}
+					tempbuf[number_of_char_in_last_transfer] = '\0';
+					//writing less than 10 characters at time. 
+					ret = write(fd, tempbuf, number_of_char_in_last_transfer);
+					if(ret<0){ printf("ERROR in WRITING\r\n"); break; }
+					printf("temp_buf was : %s\r\n",tempbuf);
+					
+					
+			
+				
+															/*	
+															//To output every character in buffer.
+															while(user_input_index<user_input_len)
+															{
+																char temp[10];//used to parse 10 characters at the time from user input.
+																int i;
+																for(i=0;i<10;i++)
+																{
+																	temp[i] = user_input[user_input_index];
+																	user_input_index++;
+																	//When user_input_lenght is reach, fill with '&' character in buffer to send (temp). '&' will need to be removed in driver..
+																	if(user_input_index>user_input_len)
+																	{
+																		temp[i] = '&';
+																	}
+																}			
+																int ret;//return value of every write.
+																//writing the whole string. 
+																ret = write(fd, temp, 9);
+																if(ret<0){ printf("ERROR in WRITING\r\n"); break; }
+																//printf("user_input_index is at  : %d\r\n",user_input_index);
+																//printf("Success writing %d Bytes\r\n",user_input_index-(bloc_written*10));
+																//printf("Success writing %d Bytes\r\n",user_input_len);
+															}
+															printf("Success writing %d Bytes\r\n",user_input_len);
+															*/
+															
+				
+				
+				
+																														/*
+																														//Writing into Char_driver
+																														char string[10] = "applejacks";
+																														printf("String is : %s\r\n",string);
+																														int size = sizeof(string);
+																														int i = 0;//index for string.
+																														printf("Size of the string is : %d\r\n",size);
+																														int ret;//return value of every write.
+
+																														//writing the whole string. 
+																														ret = write(fd, string, 9);
+																															if(ret<0){
+																																printf("ERROR in WRITING\r\n");
+																																break;
+																															}
+																														printf("Success writing 10 Bytes\r\n");
+																														*/
 									
 									
 

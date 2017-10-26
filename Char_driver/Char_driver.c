@@ -32,10 +32,10 @@ Simple Driver to exchange bytes between programs.
 #include <asm/atomic.h>
 
 //CUSTOM DEFINES
-//#define DEFAULT_SIZE_BUFFER 50
-#define DEFAULT_SIZE_BUFFER 51 //one extra character for '\0'
-//#define DEFAULT_TEMP_BUF 10
-#define DEFAULT_TEMP_BUF 11  //one extra character for '\0'
+#define DEFAULT_SIZE_BUFFER 50
+//#define DEFAULT_SIZE_BUFFER 51 //one extra character for '\0'
+#define DEFAULT_TEMP_BUF 10
+//#define DEFAULT_TEMP_BUF 11  //one extra character for '\0'
 
 MODULE_LICENSE("Dual BSD/GPL");
 
@@ -123,7 +123,7 @@ int Char_driver_open(struct inode *inode, struct file *filp) {
 	}*/
 
 	//Incrementing number of readers/writers.
-	//if openning in read_only, increment number of reader.
+	//if openning in read_only, increment number of reader. Maybe check if numReader and numWriter are positive numbers.
 	if((filp->f_flags & O_ACCMODE) == O_RDONLY) {
 		BDev.numReader++;
 	}
@@ -224,30 +224,26 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 		int i;//index to put one char at the time in the circular buffer.
 		int ret;//used for copy_from_user returned value.
 
-		//printk(KERN_ALERT"Char_driver Num is at ->%d \n", num);
+		printk(KERN_ALERT"Char_driver Count is at ->%d \n", (int)count);
 
-		
-		ret = copy_from_user(BDev.tampon_from_user, buf, DEFAULT_TEMP_BUF);
+		//Clean BDev.tampon_from_user before every copy_from_user.
+		for(i = 0;i<DEFAULT_TEMP_BUF;i++){
+			BDev.tampon_from_user[i] = ' ';
+		}
+
+		//ret = copy_from_user(BDev.tampon_from_user, buf, count);
+		ret = copy_from_user(BDev.tampon_from_user, buf, (unsigned long)count);
 		if(ret == 0){
-		BDev.tampon_from_user[10] = '\0';//taking out junk characters by terminating string with '\0'
+		//BDev.tampon_from_user[10] = '\0';//taking out junk characters by terminating string with '\0'
+		//BDev.tampon_from_user[count] = '\0';//taking out junk characters by terminating string with '\0'
 		printk(KERN_WARNING"Char_driver_write (%s:%u), BDev.tampon_from_user is : %s\n", __FUNCTION__, __LINE__, BDev.tampon_from_user);
 		}		
-
-		/*
-		//Then, add it to circular_buffer (NOT CIRCULAR YET).
-		//circular_buffer = tampon_from_user;
-		for(i = 0;i<DEFAULT_TEMP_BUF;i++){
-			//Buffer.circular_buffer[i] = tampon_from_user[i];
-			//printk(KERN_WARNING"Char_driver_write (%s:%u), BDev.tampon_from_user[i] is : %c\n", __FUNCTION__, __LINE__, BDev.tampon_from_user[i]);	
-			char_to_transfer = BDev.tampon_from_user[i];
-			BufIn(&Buffer, &char_to_transfer);
-		}
-		*/
 
 		//!!!!!!!!!! WILL NEED SEMAPHORE DOWN HERE   !!!!!!!!!!!!!!!!!!//
 
 		//for extra '\0'
-		for(i = 0;i<DEFAULT_TEMP_BUF-1;i++){
+		//for(i = 0;i<DEFAULT_TEMP_BUF;i++){
+		for(i = 0;i<count;i++){
 			//Buffer.circular_buffer[i] = tampon_from_user[i];
 			//printk(KERN_WARNING"Char_driver_write (%s:%u), BDev.tampon_from_user[i] is : %c\n", __FUNCTION__, __LINE__, BDev.tampon_from_user[i]);	
 			char_to_transfer = BDev.tampon_from_user[i];
@@ -309,7 +305,7 @@ static int __init Char_driver_init (void) {
 	} else {
 		printk(KERN_ALERT"Char_driver 50 bytes of memory for the circular buffer\n");
 	}
-	for(i=0;i<DEFAULT_SIZE_BUFFER-1;i++)
+	for(i=0;i<DEFAULT_SIZE_BUFFER;i++)
 	{
 		Buffer.circular_buffer[i] = '$';//initialize one by one with a '$' except last character.
 	}
@@ -323,7 +319,7 @@ static int __init Char_driver_init (void) {
 	} else {
 		printk(KERN_ALERT"Char_driver 10 bytes of memory for tampon_for_user\n");
 	}
-	for(i=0;i<DEFAULT_TEMP_BUF-1;i++)
+	for(i=0;i<DEFAULT_TEMP_BUF;i++)
 	{
 		BDev.tampon_for_user[i] = '*';//initialize one by one with a '$' except last character.
 	}
@@ -337,7 +333,7 @@ static int __init Char_driver_init (void) {
 	} else {
 		printk(KERN_ALERT"Char_driver 10 bytes of memory for tampon_from_user\n");
 	}
-	for(i=0;i<DEFAULT_TEMP_BUF-1;i++)
+	for(i=0;i<DEFAULT_TEMP_BUF;i++)
 	{
 		BDev.tampon_from_user[i] = '*';//initialize one by one with a '$' except last character.
 	}
