@@ -79,30 +79,34 @@ struct Buf_Dev {
 //circular_buffer Functions
 //Puts 1 character in the Circular buffer.
 int BufIn(struct BufStruct *Buf, char *Data) {
-	//if(Buf->BufFull)
-	//	return -1;
-	//Buf->BufEmpty = 0;
+	//printk(KERN_ALERT"Char_driver, Buffer.BufFull is at %d\n", Buffer.BufFull);
+	if(Buf->BufFull) { return -1; }
+	Buf->BufEmpty = 0;
 	Buf->circular_buffer[Buf->InIdx] = *Data;
 	Buf->InIdx = (Buf->InIdx + 1) % Buf->BufSize;
-	//if(Buf->InIdx == Buf->OutIdx)
-	//	Buf->BufFull = 1;
+	if(Buf->InIdx == Buf->OutIdx)
+	{
+		Buf->BufFull = 1;
+	}
 	//printk(KERN_ALERT"Char_driver, Buf->InIdx is AT : %i\n", Buf->InIdx );
 	//printk(KERN_ALERT"Char_driver, putting %c in circular buffer\n", *Data);
 	return 0;
 }
 
 int BufOut(struct BufStruct *Buf, char *Data) {
-	//if(Buf->BufEmpty)
-	//	return -1;
-	//Buf->BufFull = 0;
+	//printk(KERN_ALERT"Char_driver, Buffer.BufEmpty is at %d\n", Buffer.BufEmpty);
+	if(Buf->BufEmpty){ return -1; }
+	Buf->BufFull = 0;
 	//printk(KERN_ALERT"Char_driver, Buf->OutIdx is AT : %i\n", Buf->OutIdx );
 	*Data = Buf->circular_buffer[Buf->OutIdx];
 	//Taking OUT a character of the buffer.
 	Buf->circular_buffer[Buf->OutIdx] = '$';//means empty slot.
 	//printk(KERN_ALERT"Char_driver, HERE???\n");
 	Buf->OutIdx = (Buf->OutIdx + 1) % Buf->BufSize;
-	//if(Buf->OutIdx == Buf->InIdx)
-	//	Buf->BufEmpty = 1;
+	if(Buf->OutIdx == Buf->InIdx)
+	{
+		Buf->BufEmpty = 1;
+	}
 	//printk(KERN_ALERT"Char_driver Got here? BUFOUT\n");
 	return 0;
 }
@@ -183,6 +187,7 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 		//char tampon_for_user[10] = {0};
 		int i;
 		char char_received = '?';
+		int ret;//used for error catching.
 
 	//printk(KERN_WARNING"Num is at ->%d \n", num);
 	//printk(KERN_ALERT"Char_driver Num is at ->%d \n", num);
@@ -200,7 +205,11 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 			//char * char_received = NULL;
 
 			//TODO BufOut returns something to know if operation success.
-			BufOut(&Buffer, &char_received);	
+			ret = BufOut(&Buffer, &char_received);
+			if(ret<0) { 
+				printk(KERN_WARNING"Buffer is EMPTY\n");
+				return -1; 
+			}	
 			BDev.tampon_for_user[i] = char_received;
 			//tampon_for_user[i] = char_received;
 		}
@@ -212,7 +221,7 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 		printk(KERN_WARNING"Char_driver_read (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, Buffer.circular_buffer);
 		printk(KERN_WARNING"Char_driver_read (%s:%u), BDev.tampon_for_user is : %s\n", __FUNCTION__, __LINE__, BDev.tampon_for_user);
 		//copy_to_user(buf, BDev.tampon_for_user, DEFAULT_TEMP_BUF);
-		copy_to_user(buf, BDev.tampon_for_user, DEFAULT_TEMP_BUF);
+		copy_to_user(buf, BDev.tampon_for_user, count);
 
 		//printk(KERN_WARNING"Char_driver_read (%s:%u) count = %lu ch = %c\n", __FUNCTION__, __LINE__, count, ch);
 		return 1;
@@ -224,7 +233,7 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 		//char tampon_from_user[10] = {0};
 		char char_to_transfer;
 		int i;//index to put one char at the time in the circular buffer.
-		int ret;//used for copy_from_user returned value.
+		int ret;//used for error catching.
 
 		printk(KERN_ALERT"Char_driver Count is at ->%d \n", (int)count);
 
@@ -250,7 +259,11 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 			//printk(KERN_WARNING"Char_driver_write (%s:%u), BDev.tampon_from_user[i] is : %c\n", __FUNCTION__, __LINE__, BDev.tampon_from_user[i]);	
 			char_to_transfer = BDev.tampon_from_user[i];
 			//TODO BufIn returns something to know if operation success.
-			BufIn(&Buffer, &char_to_transfer);
+			ret = BufIn(&Buffer, &char_to_transfer);
+			if(ret<0) { 
+				printk(KERN_WARNING"Buffer is FULL\n"); 
+				return -1; 
+			}
 		}
 
 		//!!!!!!!!!! WILL NEED SEMAPHORE UP HERE     !!!!!!!!!!!!!!!!!!//
@@ -352,7 +365,7 @@ static int __init Char_driver_init (void) {
 
 	//init BufFull, BufEmpty.
 	Buffer.BufFull = 0;
-	Buffer.BufEmpty = 0;//not empty at start?
+	Buffer.BufEmpty = 1;//mpty at start?
 
 	//init number of writer and reader.
 	BDev.numWriter = 0;
