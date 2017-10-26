@@ -16,7 +16,8 @@ void display_welcome();
 void display_menu();
 int scan_input();
 void execute(int choice);
-char user_text_input[256];
+char user_text_input[256];	//used to put data into driver.
+char user_text_output[256]; //used to display data retrieved from driver.
 
 //operation_done set to 1 when user is done with requesting.
 int operation_done = 0;
@@ -126,7 +127,7 @@ void execute(int choice){
 						if(ret<0){ printf("ERROR in WRITING\r\n"); break; }
 						
 						tempbuf[10] = '\0';
-						printf("temp_buf was : %s\r\n",tempbuf);
+						printf("tempbuf was : %s\r\n",tempbuf);
 					}
 					//printf("number_of_char_in_last_transfer is : %d\r\n",number_of_char_in_last_transfer);
 					//Sends less than 10 characters.
@@ -139,60 +140,7 @@ void execute(int choice){
 					//writing less than 10 characters at time. 
 					ret = write(fd, tempbuf, number_of_char_in_last_transfer);
 					if(ret<0){ printf("ERROR in WRITING\r\n"); break; }
-					printf("temp_buf was : %s\r\n",tempbuf);
-					
-					
-			
-				
-															/*	
-															//To output every character in buffer.
-															while(user_input_index<user_input_len)
-															{
-																char temp[10];//used to parse 10 characters at the time from user input.
-																int i;
-																for(i=0;i<10;i++)
-																{
-																	temp[i] = user_input[user_input_index];
-																	user_input_index++;
-																	//When user_input_lenght is reach, fill with '&' character in buffer to send (temp). '&' will need to be removed in driver..
-																	if(user_input_index>user_input_len)
-																	{
-																		temp[i] = '&';
-																	}
-																}			
-																int ret;//return value of every write.
-																//writing the whole string. 
-																ret = write(fd, temp, 9);
-																if(ret<0){ printf("ERROR in WRITING\r\n"); break; }
-																//printf("user_input_index is at  : %d\r\n",user_input_index);
-																//printf("Success writing %d Bytes\r\n",user_input_index-(bloc_written*10));
-																//printf("Success writing %d Bytes\r\n",user_input_len);
-															}
-															printf("Success writing %d Bytes\r\n",user_input_len);
-															*/
-															
-				
-				
-				
-																														/*
-																														//Writing into Char_driver
-																														char string[10] = "applejacks";
-																														printf("String is : %s\r\n",string);
-																														int size = sizeof(string);
-																														int i = 0;//index for string.
-																														printf("Size of the string is : %d\r\n",size);
-																														int ret;//return value of every write.
-
-																														//writing the whole string. 
-																														ret = write(fd, string, 9);
-																															if(ret<0){
-																																printf("ERROR in WRITING\r\n");
-																																break;
-																															}
-																														printf("Success writing 10 Bytes\r\n");
-																														*/
-									
-									
+					printf("tempbuf was : %s\r\n",tempbuf);				
 
 			//Do you want to write something else?
 			printf("Do you want to write something else?\r\n");
@@ -240,24 +188,63 @@ void execute(int choice){
 			while(no_more_request != 1)
 			{
 
-				/*
+				
 				//How many characters do you want to read?
 				//Reading from Char_driver
-				printf("Type what you want to put in the buffer \r\n");
-				int number_input = scan_input();
+				printf("How many characters do you want to read? \r\n");
+				int number_input = scan_input();//Test with 27.
 				printf("You typed: %d\n", number_input);
-				int user_input_index = 0; //used to parse 10 characters at the time.
-				//if above 10 characters long
-				/*
-				while(user_input_index < number_input)
+
+				char tempbuf[11];//used to parse 10 characters (or less) at the time to user from driver.
+				int i;//index to copy temp to user.
+				int user_output_index = 0; //used to parse 10 characters at the time.
+				int j;//counting number of buffer of size 10 to receive.
+				int number_of_tempbuf_to_receive = (number_input - (number_input%10))/10;//results in 2.
+				int number_of_char_in_last_transfer = number_input%10;//results in 7.
+				int ret;//return value of every read.
+
+				//cleaning user_text_output to display data retrieved from buffer.
+				for(i=0;i<255;i++)
 				{
-					char bytes_received[11];
-					ret = read(fd, &bytes_received , 9);	
+					user_text_output[i] = ' ';
 				}
-				*/
+				user_text_output[255] = '\0';//to remove junk characters.
+
+					//Receive 10 characters everytime.
+					for(j=0;j<number_of_tempbuf_to_receive;j++)
+					{
+						//reading 10 characters at time.
+						ret = read(fd, tempbuf, 10);
+						if(ret<0){ printf("ERROR in READING\r\n"); break; }
+						
+						tempbuf[10] = '\0'; //to remove junk characters.
+						printf("tempbuf is : %s\r\n",tempbuf);
+
+						for(i=0;i<10;i++)
+						{
+							//Building user_text_output to display received characters.
+							user_text_output[user_output_index] = tempbuf[i];
+							user_output_index++;
+	
+							//tempbuf[i] = user_input[user_input_index];
+							//user_output_index++;
+						}
+					}
+					//Receive less than 10 characters.
+					ret = read(fd, tempbuf, number_of_char_in_last_transfer);
+					if(ret<0){ printf("ERROR in READING\r\n"); break; }
+
+					//Building user_text_output to display received characters.
+					for(i=0;i<number_of_char_in_last_transfer;i++)
+					{
+						user_text_output[user_output_index] = tempbuf[i];
+						user_output_index++;
+					}
+					printf("Data received is : %s\r\n", user_text_output);
+				
 				
 
-
+																/*
 																//Reading from Char_driver
 																char bytes_received[11];
 																int size = sizeof(bytes_received);
@@ -275,6 +262,9 @@ void execute(int choice){
 				
 																printf("Success in reading 10 bytes from driver.\r\n");
 																printf("bytes_received are : %s\r\n", bytes_received);
+																*/
+
+				
 
 			//Do you want to read something else?
 			printf("Do you want to read something else?\r\n");

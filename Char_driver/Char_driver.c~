@@ -98,7 +98,7 @@ int BufOut(struct BufStruct *Buf, char *Data) {
 	//printk(KERN_ALERT"Char_driver, Buf->OutIdx is AT : %i\n", Buf->OutIdx );
 	*Data = Buf->circular_buffer[Buf->OutIdx];
 	//Taking OUT a character of the buffer.
-	Buf->circular_buffer[Buf->OutIdx] = '$';
+	Buf->circular_buffer[Buf->OutIdx] = '$';//means empty slot.
 	//printk(KERN_ALERT"Char_driver, HERE???\n");
 	Buf->OutIdx = (Buf->OutIdx + 1) % Buf->BufSize;
 	//if(Buf->OutIdx == Buf->InIdx)
@@ -194,7 +194,8 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 
 		//!!!!!!!!!! WILL NEED SEMAPHORE DOWN HERE   !!!!!!!!!!!!!!!!!!//	
 		
-		for(i = 0;i<DEFAULT_TEMP_BUF;i++){
+		//for(i = 0;i<DEFAULT_TEMP_BUF;i++){
+		for(i = 0;i<count;i++){
 			//tampon_for_user[i] = Buffer.circular_buffer[i];
 			//char * char_received = NULL;
 
@@ -210,6 +211,7 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 
 		printk(KERN_WARNING"Char_driver_read (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, Buffer.circular_buffer);
 		printk(KERN_WARNING"Char_driver_read (%s:%u), BDev.tampon_for_user is : %s\n", __FUNCTION__, __LINE__, BDev.tampon_for_user);
+		//copy_to_user(buf, BDev.tampon_for_user, DEFAULT_TEMP_BUF);
 		copy_to_user(buf, BDev.tampon_for_user, DEFAULT_TEMP_BUF);
 
 		//printk(KERN_WARNING"Char_driver_read (%s:%u) count = %lu ch = %c\n", __FUNCTION__, __LINE__, count, ch);
