@@ -23,7 +23,9 @@ Simple Driver to exchange bytes between programs.
 #include <linux/rwsem.h>
 
 //Error messages, like ENOTTY
-#include <include/uapi/asm-generic/errno-base.h>
+//#include <include/uapi/asm-generic/errno-base.h>
+#include <asm-generic/errno-base.h>
+
 
 #include <linux/moduleparam.h>
 #include <asm/uaccess.h>
@@ -110,12 +112,15 @@ int BufOut(struct BufStruct *Buf, char *Data) {
 int Char_driver_open(struct inode *inode, struct file *filp) {
 	printk(KERN_WARNING"Char_driver_open (%s:%u)\n", __FUNCTION__, __LINE__);
 
+
+	/*
 	//File openning verification
 	//Checking if a WRITER is already open.
-	if(BDev.numWriter>1){
+	if(BDev.numWriter > 1){
 		//Can't open, return error code.
-		return -ENOTTY;
-	}
+		return -EBUSY;		
+		//return -ENOTTY;
+	}*/
 
 	//Incrementing number of readers/writers.
 	//if openning in read_only, increment number of reader.
@@ -132,6 +137,20 @@ int Char_driver_open(struct inode *inode, struct file *filp) {
 		BDev.numReader++;
 	}
 
+	printk(KERN_WARNING"Char_driver BDev.numWriter is at : %d\n", BDev.numWriter);
+	printk(KERN_WARNING"Char_driver BDev.numReader is at : %d\n", BDev.numReader);
+
+	//File openning verification
+	//Checking if a WRITER is already open.
+	if(BDev.numWriter > 1){
+		BDev.numWriter--;
+		//Can't open, return error code.
+		//return -EBUSY;		
+		return -ENOTTY;
+	}
+
+	//printk(KERN_WARNING"Char_driver BDev.numWriter is at : %d\n", BDev.numWriter);
+	//printk(KERN_WARNING"Char_driver BDev.numReader is at : %d\n", BDev.numReader);
 
 	return 0;
 }
