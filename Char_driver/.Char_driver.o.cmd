@@ -670,6 +670,7 @@ deps_/home/ens/AK82770/Documents/ele784/labo1/Char_driver/Char_driver.o := \
   arch/x86/include/asm/smap.h \
     $(wildcard include/config/x86/smap.h) \
   arch/x86/include/asm/uaccess_64.h \
+  /home/ens/AK82770/Documents/ele784/labo1/Char_driver/buffer_ioctl.h \
 
 /home/ens/AK82770/Documents/ele784/labo1/Char_driver/Char_driver.o: $(deps_/home/ens/AK82770/Documents/ele784/labo1/Char_driver/Char_driver.o)
 

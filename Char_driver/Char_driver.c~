@@ -26,10 +26,13 @@ Simple Driver to exchange bytes between programs.
 //#include <include/uapi/asm-generic/errno-base.h>
 #include <asm-generic/errno-base.h>
 
-
 #include <linux/moduleparam.h>
 #include <asm/uaccess.h>
 #include <asm/atomic.h>
+
+//for IOCTL
+#include <asm/ioctl.h>
+#include "buffer_ioctl.h"
 
 //CUSTOM DEFINES
 #define DEFAULT_SIZE_BUFFER 50
@@ -109,6 +112,18 @@ int BufOut(struct BufStruct *Buf, char *Data) {
 	}
 	//printk(KERN_ALERT"Char_driver Got here? BUFOUT\n");
 	return 0;
+}
+
+//IOCTL FUNCTIONS
+int GetNumData(struct BufStruct *Buf){
+	//return 666;	
+	return (Buf->InIdx-Buf->OutIdx);
+}
+int GetNumReader(struct Buf_Dev *Buf){
+	return (Buf->numReader);
+}
+int GetBufSize(struct BufStruct *Buf){
+	return (Buf->BufSize);
 }
 
 
@@ -273,10 +288,70 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 		return 1;
 }
 
+//IOCTL
+static long Char_driver_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
+	int err= 0;
+	int tmp;
+	int ret;
+
+	//printk(KERN_WARNING"Char_driver_write (%s:%u), WHERE DOES IT FAIL??\n", __FUNCTION__, __LINE__);
+
+	if(_IOC_TYPE(cmd) != BUFFER_IOCTL_MAGIC)	return -ENOTTY;
+
+	//printk(KERN_WARNING"Char_driver_write (%s:%u), WHERE DOES IT FAIL??\n", __FUNCTION__, __LINE__);
+
+	if(_IOC_NR(cmd) > BUFFER_IOCTL_MAXNR)	return -ENOTTY;
+
+	//printk(KERN_WARNING"Char_driver_write (%s:%u), WHERE DOES IT FAIL??\n", __FUNCTION__, __LINE__);
+
+	if(_IOC_DIR(cmd) & _IOC_READ) {
+		err = !access_ok(VERIFY_WRITE, (void __user*)arg, _IOC_SIZE(cmd));
+	} else if(_IOC_DIR(cmd) & _IOC_WRITE) {
+		err = !access_ok(VERIFY_READ, (void __user*)arg, _IOC_SIZE(cmd));
+	}
+	if(err){
+		return -EFAULT;
+	}
+
+	//printk(KERN_WARNING"Char_driver_write (%s:%u), WHERE DOES IT FAIL??\n", __FUNCTION__, __LINE__);
+
+	switch(cmd) {
+		case BUFFER_IOCTL_BYTESINBUFFER :
+													//printk(KERN_WARNING"Char_driver_write (%s:%u), WHERE DOES IT FAIL??\n", __FUNCTION__, __LINE__);
+														//PERMISSION ADMIN??
+
+													//SEMAPHORE WILL GO HERE//
+													tmp = GetNumData(&Buffer);//return number of bytes in circular buffer.
+													//SEMAPHORE WILL GO HERE//
+													ret = __put_user(tmp, (int __user *)arg);
+													break;
+		
+		case BUFFER_IOCTL_NUMREADER : 
+													//PERMISSION ADMIN??
+													//SEMAPHORE WILL GO HERE//
+													tmp = GetNumReader(&BDev);//return number of reader in user program.
+													//SEMAPHORE WILL GO HERE//
+													ret = __put_user(tmp, (int __user *)arg);
+													break;
+		case BUFFER_IOCTL_BUFFERSIZE : 
+													//PERMISSION ADMIN??
+													//SEMAPHORE WILL GO HERE//
+													tmp = GetNumReader(&Buffer);//return size of circular buffer.
+													//SEMAPHORE WILL GO HERE//
+													ret = __put_user(tmp, (int __user *)arg);
+													break;										
+		//case ...
+		default: return -ENOTTY;
+		}
+	return ret;												
+}
+
+
 struct file_operations Char_driver_fops = {
 	.owner		=	THIS_MODULE,
 	.read		=	Char_driver_read,
 	.write		=	Char_driver_write,
+	.unlocked_ioctl	= Char_driver_ioctl,
 	.open		=	Char_driver_open,
 	.release	=	Char_driver_release
 };

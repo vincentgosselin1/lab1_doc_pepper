@@ -11,6 +11,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+//for IOCTL
+#include <asm/ioctl.h>
+#include "buffer_ioctl.h"
+
 //used for user interaction.
 void display_welcome();
 void display_menu();
@@ -447,19 +451,82 @@ void execute(int choice){
 		//4 for Returning number of bytes in buffer.
 		case 4 : 
 		{
-			//to do.
+			printf("Testing IOCTL : Number of bytes in buffer\r\n");
+			//file descriptor used for driver interaction. 
+			int fd;
+			//Driver is called "etsele_cdev". 
+			fd = open("/dev/etsele_cdev", O_RDWR);
+			if(fd<0){
+				printf("ERROR in OPENNING\r\n");
+				break;
+			}
+			int ret;
+			unsigned long value;
+			ret = ioctl(fd,BUFFER_IOCTL_BYTESINBUFFER,&value);//2nd parameter is the command associated, 3rd is pointer to unsigned long.
+			//printf("ret is : %d\r\n",(int)ret);
+			printf("Number of bytes in buffer is : %d\r\n",(int)value);
+
+			//Close the file now.
+			//int ret;
+			ret = close(fd);
+			if(ret<0){
+				printf("ERROR in closing\r\n");
+			}
+
 			break;
 		}
 		//5 for Returning number of readers
 		case 5 : 
 		{
-			//to do.
+			printf("Testing IOCTL : Number of readers\r\n");
+			//file descriptor used for driver interaction. 
+			int fd;
+			//Driver is called "etsele_cdev". 
+			fd = open("/dev/etsele_cdev", O_RDWR);
+			if(fd<0){
+				printf("ERROR in OPENNING\r\n");
+				break;
+			}
+			int ret;
+			unsigned long value;
+			ret = ioctl(fd,BUFFER_IOCTL_NUMREADER,&value);//2nd parameter is the command associated, 3rd is pointer to unsigned long.
+			//printf("ret is : %d\r\n",(int)ret);
+			printf("Number of readers is : %d\r\n",(int)value);
+
+			//Close the file now.
+			//int ret;
+			ret = close(fd);
+			if(ret<0){
+				printf("ERROR in closing\r\n");
+			}
+
 			break;
 		}
 		//6 for Returning size of the buffer
 		case 6 :
 		{
-			//to do
+			printf("Testing IOCTL : Size of Circular Buffer\r\n");
+			//file descriptor used for driver interaction. 
+			int fd;
+			//Driver is called "etsele_cdev". 
+			fd = open("/dev/etsele_cdev", O_RDWR);
+			if(fd<0){
+				printf("ERROR in OPENNING\r\n");
+				break;
+			}
+			int ret;
+			unsigned long value;
+			ret = ioctl(fd,BUFFER_IOCTL_BUFFERSIZE,&value);//2nd parameter is the command associated, 3rd is pointer to unsigned long.
+			//printf("ret is : %d\r\n",(int)ret);
+			printf("Size of Circular Buffer is : %d\r\n",(int)value);
+
+			//Close the file now.
+			//int ret;
+			ret = close(fd);
+			if(ret<0){
+				printf("ERROR in closing\r\n");
+			}
+
 			break;
 		}
 		//7 Set a new size for the buffer

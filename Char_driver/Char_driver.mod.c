@@ -21,6 +21,7 @@ __attribute__((section("__versions"))) = {
 	{ 0xfbbd2ff7, __VMLINUX_SYMBOL_STR(cdev_del) },
 	{ 0x10380b27, __VMLINUX_SYMBOL_STR(kmalloc_caches) },
 	{ 0xc13c3f5e, __VMLINUX_SYMBOL_STR(cdev_init) },
+	{ 0x4c4fef19, __VMLINUX_SYMBOL_STR(kernel_stack) },
 	{ 0xb6b46a7c, __VMLINUX_SYMBOL_STR(param_ops_int) },
 	{ 0x433a3e9e, __VMLINUX_SYMBOL_STR(device_destroy) },
 	{ 0x7485e15e, __VMLINUX_SYMBOL_STR(unregister_chrdev_region) },
