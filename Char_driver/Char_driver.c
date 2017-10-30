@@ -114,12 +114,26 @@ int BufOut(struct BufStruct *Buf, char *Data) {
 
 //IOCTL FUNCTIONS
 int GetNumData(struct BufStruct *Buf){
+
+	//Number of data is equal to not counting of '$' (empty spaces).
+	int char_counter = 0;
+	int i;
+	for(i=0;i<Buf->BufSize;i++)
+	{
+		if(Buf->circular_buffer[i] != '$')
+		{
+			char_counter++;
+		}
+	}
+	return char_counter;
+	/*
 	//could be negative so
-	if(Buf->InIdx < Buf->OutIdx){
-		return (Buf->OutIdx-Buf->InIdx);
+	if(Buf->InIdx-Buf->OutIdx<0){
+		return -(Buf->OutIdx-Buf->InIdx);
 	} else {
 		return (Buf->InIdx-Buf->OutIdx);
 	}
+	*/
 }
 int GetNumReader(struct Buf_Dev *Buf){
 	return (Buf->numReader);
@@ -273,7 +287,7 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 			char_to_transfer = BDev.tampon_from_user[i];
 			ret = BufIn(&Buffer, &char_to_transfer);
 			if(ret<0) { 
-				printk(KERN_WARNING"Buffer is FULL\n");
+				printk(KERN_WARNING"Char_driver Buffer is FULL\n");
 				//Something to do here.
 				return -EPERM; 
 			}
@@ -291,7 +305,7 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 			char_to_transfer = BDev.tampon_from_user[i];
 			ret = BufIn(&Buffer, &char_to_transfer);
 			if(ret<0) { 
-				printk(KERN_WARNING"Buffer is FULL\n");
+				printk(KERN_WARNING"Char_driver Buffer is FULL\n");
 				//Something to do here.
 				return -EPERM;
 			}
