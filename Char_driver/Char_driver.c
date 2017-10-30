@@ -35,7 +35,7 @@ Simple Driver to exchange bytes between programs.
 #include "buffer_ioctl.h"
 
 //CUSTOM DEFINES
-#define DEFAULT_SIZE_BUFFER 20
+#define DEFAULT_SIZE_BUFFER 50
 #define DEFAULT_TEMP_BUF 16
 
 MODULE_LICENSE("Dual BSD/GPL");
@@ -214,6 +214,7 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 	int number_of_char_in_last_transfer = number_of_characters_to_user%DEFAULT_TEMP_BUF;//results in 11.
 	int ret;//used for error catching
 	int i;//index to retrieve one char at the time from circular buffer.
+	int number_of_bytes_transfered = 0; //Returned value of the "read".
 	
 	//Receive blocs of 16 characters everytime from circular buffer.
 	for(j=0;j<number_of_tempbuf_to_receive;j++)
@@ -230,6 +231,7 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 			}
 			//put inside temp buff for user.
 			BDev.tampon_for_user[i] = char_received;
+			number_of_bytes_transfered++;
 		}
 		//send 16 bytes to user.
 		copy_to_user((buf+index_for_string_reconstruct), BDev.tampon_for_user, DEFAULT_TEMP_BUF);
@@ -248,12 +250,13 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 			}
 			//put inside temp buff for user.
 			BDev.tampon_for_user[i] = char_received;
+			number_of_bytes_transfered++;
 		}
 	//send less 16 bytes to user.
 	copy_to_user((buf+index_for_string_reconstruct), BDev.tampon_for_user, number_of_char_in_last_transfer);
 
 	printk(KERN_WARNING"Char_driver_read (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, Buffer.circular_buffer);
-	return 1;
+	return number_of_bytes_transfered;
 	
 }
 
