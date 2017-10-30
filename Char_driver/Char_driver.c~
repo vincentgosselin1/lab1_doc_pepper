@@ -37,7 +37,7 @@ Simple Driver to exchange bytes between programs.
 //CUSTOM DEFINES
 #define DEFAULT_SIZE_BUFFER 50
 //#define DEFAULT_SIZE_BUFFER 51 //one extra character for '\0'
-#define DEFAULT_TEMP_BUF 10
+#define DEFAULT_TEMP_BUF 16
 //#define DEFAULT_TEMP_BUF 11  //one extra character for '\0'
 
 MODULE_LICENSE("Dual BSD/GPL");
@@ -199,93 +199,106 @@ int Char_driver_release(struct inode *inode, struct file *filp) {
 
 static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos) {
 
-		//char tampon_for_user[10] = {0};
-		int i;
-		char char_received = '?';
-		int ret;//used for error catching.
-
-	//printk(KERN_WARNING"Num is at ->%d \n", num);
-	//printk(KERN_ALERT"Char_driver Num is at ->%d \n", num);
-	//printk(KERN_ALERT"HELLO ALL\n");
-	//printk(KERN_WARNING"Char_driver_read (%s:%u) count = %lu ch = %c\n", __FUNCTION__, __LINE__, count, ch);
-
+	int number_of_characters_to_user = count;//27 characters long.
+	int number_of_tempbuf_to_receive = (number_of_characters_to_user-(number_of_characters_to_user%DEFAULT_TEMP_BUF))/DEFAULT_TEMP_BUF;//results in 1.
+	int index_for_string_reconstruct = 0;//used to reconstruct string in user program.
+	int j;//counting number of buffer of size 16 to receive.
+	int number_of_char_in_last_transfer = number_of_characters_to_user%DEFAULT_TEMP_BUF;//results in 11.
+	int ret;//used for error catching
+	int i;//index to retrieve one char at the time from circular buffer.
 	
-		//printk(KERN_ALERT"HELLO ALL\n");
-
-		//!!!!!!!!!! WILL NEED SEMAPHORE DOWN HERE   !!!!!!!!!!!!!!!!!!//	
-		
-		//for(i = 0;i<DEFAULT_TEMP_BUF;i++){
-		for(i = 0;i<count;i++){
-			//tampon_for_user[i] = Buffer.circular_buffer[i];
-			//char * char_received = NULL;
-
-			//TODO BufOut returns something to know if operation success.
+	//Receive blocs of 16 characters everytime from circular buffer.
+	for(j=0;j<number_of_tempbuf_to_receive;j++)
+	{
+		//retrieve 16 bytes from circular buffer.
+		for(i=0;i<DEFAULT_TEMP_BUF;i++)
+		{
+			char char_received;
 			ret = BufOut(&Buffer, &char_received);
 			if(ret<0) { 
 				printk(KERN_WARNING"Buffer is EMPTY\n");
-				return -1; 
-			}	
+				//Something to do here.
+				return -EPERM; 
+			}
+			//put inside temp buff for user.
 			BDev.tampon_for_user[i] = char_received;
-			//tampon_for_user[i] = char_received;
 		}
-		//one extra for '\0'
-		BDev.tampon_for_user[i] = '\0';
+		//send 16 bytes to user.
+		copy_to_user((buf+index_for_string_reconstruct), BDev.tampon_for_user, DEFAULT_TEMP_BUF);
+		//increment index_from_circular_buffer to reconstruct string in user program.
+		index_for_string_reconstruct += DEFAULT_TEMP_BUF;
+	}
+	//Receive less than 16 characters from circular buffer
+	for(i=0;i<number_of_char_in_last_transfer;i++)
+		{
+			char char_received;
+			ret = BufOut(&Buffer, &char_received);
+			if(ret<0) { 
+				printk(KERN_WARNING"Buffer is EMPTY\n");
+				//Something to do here.
+				return -EPERM;
+			}
+			//put inside temp buff for user.
+			BDev.tampon_for_user[i] = char_received;
+		}
+	//send less 16 bytes to user.
+	copy_to_user((buf+index_for_string_reconstruct), BDev.tampon_for_user, number_of_char_in_last_transfer);
 
-		//!!!!!!!!!! WILL NEED SEMAPHORE UP HERE     !!!!!!!!!!!!!!!!!!//
-
-		printk(KERN_WARNING"Char_driver_read (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, Buffer.circular_buffer);
-		printk(KERN_WARNING"Char_driver_read (%s:%u), BDev.tampon_for_user is : %s\n", __FUNCTION__, __LINE__, BDev.tampon_for_user);
-		//copy_to_user(buf, BDev.tampon_for_user, DEFAULT_TEMP_BUF);
-		copy_to_user(buf, BDev.tampon_for_user, count);
-
-		//printk(KERN_WARNING"Char_driver_read (%s:%u) count = %lu ch = %c\n", __FUNCTION__, __LINE__, count, ch);
-		return 1;
+	printk(KERN_WARNING"Char_driver_write (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, Buffer.circular_buffer);
+	return 1;
 	
 }
 
 static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos) {
 
-		//char tampon_from_user[10] = {0};
-		char char_to_transfer;
-		int i;//index to put one char at the time in the circular buffer.
-		int ret;//used for error catching.
-
-		printk(KERN_ALERT"Char_driver Count is at ->%d \n", (int)count);
-
-		//Clean BDev.tampon_from_user before every copy_from_user.
-		for(i = 0;i<DEFAULT_TEMP_BUF;i++){
-			BDev.tampon_from_user[i] = ' ';
-		}
-
-		//ret = copy_from_user(BDev.tampon_from_user, buf, count);
-		ret = copy_from_user(BDev.tampon_from_user, buf, (unsigned long)count);
-		if(ret == 0){
-		//BDev.tampon_from_user[10] = '\0';//taking out junk characters by terminating string with '\0'
-		//BDev.tampon_from_user[count] = '\0';//taking out junk characters by terminating string with '\0'
-		printk(KERN_WARNING"Char_driver_write (%s:%u), BDev.tampon_from_user is : %s\n", __FUNCTION__, __LINE__, BDev.tampon_from_user);
-		}		
-
-		//!!!!!!!!!! WILL NEED SEMAPHORE DOWN HERE   !!!!!!!!!!!!!!!!!!//
-
-		//for extra '\0'
-		//for(i = 0;i<DEFAULT_TEMP_BUF;i++){
-		for(i = 0;i<count;i++){
-			//Buffer.circular_buffer[i] = tampon_from_user[i];
-			//printk(KERN_WARNING"Char_driver_write (%s:%u), BDev.tampon_from_user[i] is : %c\n", __FUNCTION__, __LINE__, BDev.tampon_from_user[i]);	
+	int number_of_characters_from_user = count;//27 characters long.
+	int number_of_tempbuf_to_send = (number_of_characters_from_user-(number_of_characters_from_user%DEFAULT_TEMP_BUF))/DEFAULT_TEMP_BUF;//results in 1.
+	int index_from_user_input = 0;
+	int j;//counting number of buffer of size 16 to send.
+	int number_of_char_in_last_transfer = number_of_characters_from_user%DEFAULT_TEMP_BUF;//results in 11.
+	int ret;//used for error catching
+	int i;//index to put one char at the time in the circular buffer.
+	int number_of_bytes_transfered = 0; //Returned value of the "write".
+	
+	//Sends blocs of 16 characters everytime.
+	for(j=0;j<number_of_tempbuf_to_send;j++)
+	{
+		//copy 16 bytes from user.
+		copy_from_user(BDev.tampon_from_user, (buf+index_from_user_input), DEFAULT_TEMP_BUF);
+		for(i=0;i<DEFAULT_TEMP_BUF;i++)
+		{
+			char char_to_transfer;
 			char_to_transfer = BDev.tampon_from_user[i];
-			//TODO BufIn returns something to know if operation success.
 			ret = BufIn(&Buffer, &char_to_transfer);
 			if(ret<0) { 
-				printk(KERN_WARNING"Buffer is FULL\n"); 
-				return -1; 
+				printk(KERN_WARNING"Buffer is FULL\n");
+				//Something to do here.
+				return -EPERM; 
 			}
+			number_of_bytes_transfered++;
 		}
+		//increment index_from_user_input to copy next 16 bytes.
+		index_from_user_input += DEFAULT_TEMP_BUF;
+	}
+	//Copy less than 16 characters from user.
+	copy_from_user(BDev.tampon_from_user, (buf+index_from_user_input), number_of_char_in_last_transfer);
+	//Sends less than 16 characters in circular buffer.
+	for(i=0;i<number_of_char_in_last_transfer;i++)
+		{
+			char char_to_transfer;
+			char_to_transfer = BDev.tampon_from_user[i];
+			ret = BufIn(&Buffer, &char_to_transfer);
+			if(ret<0) { 
+				printk(KERN_WARNING"Buffer is FULL\n");
+				//Something to do here.
+				return -EPERM;
+			}
+			number_of_bytes_transfered++;
+		}
+	printk(KERN_WARNING"Char_driver_write (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, Buffer.circular_buffer);
+	//return 1;
+	return number_of_bytes_transfered;																					
 
-		//!!!!!!!!!! WILL NEED SEMAPHORE UP HERE     !!!!!!!!!!!!!!!!!!//
-		
-		printk(KERN_WARNING"Char_driver_write (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, Buffer.circular_buffer);	
-
-		return 1;
 }
 
 //IOCTL
@@ -355,6 +368,8 @@ static long Char_driver_ioctl(struct file *filp, unsigned int cmd, unsigned long
 													{
 														//to store position of InIdx and OutIdx.
 														int old_InIdx,old_OutIdx;
+														//to store old buffer size
+														int old_buffer_size = GetBufSize(&Buffer);
 														//to store user input
 														int new_buffer_size = tmp;
 														printk(KERN_WARNING"Char_driver_IOCTL_SETSIZE (%s:%u), You want to change size to : %d\n", __FUNCTION__, __LINE__, new_buffer_size);
@@ -368,6 +383,26 @@ static long Char_driver_ioctl(struct file *filp, unsigned int cmd, unsigned long
 														//Second, store position of InIdx and OutIdx.
 														old_InIdx = Buffer.InIdx;
 														old_OutIdx = Buffer.OutIdx;
+
+														//Third, displace InIdx and OutIdx. 2 possible case.
+														//	If new_buffer_size > old_buffer_size
+														//		InIdx and OutIdx stay the same.
+														// Else If new_buffer_size < old_buffer_size
+														//		InIdx wraps around, OutIdx stay the same.
+														if(new_buffer_size > old_buffer_size){
+															//Do nothing since they stay the same.
+															printk(KERN_WARNING"Char_driver_IOCTL_SETSIZE (%s:%u), NEW Buffer.InIdx is at : %d\n", __FUNCTION__, __LINE__, Buffer.InIdx);
+															printk(KERN_WARNING"Char_driver_IOCTL_SETSIZE (%s:%u), NEW Buffer.OutIdx is at : %d\n", __FUNCTION__, __LINE__, Buffer.OutIdx);
+														} else if(new_buffer_size < old_buffer_size){
+															Buffer.InIdx = (unsigned int) old_buffer_size%new_buffer_size;
+															//Buffer.OutIdx stay the same.
+															printk(KERN_WARNING"Char_driver_IOCTL_SETSIZE (%s:%u), NEW Buffer.InIdx is at : %d\n", __FUNCTION__, __LINE__, Buffer.InIdx);
+															printk(KERN_WARNING"Char_driver_IOCTL_SETSIZE (%s:%u), NEW Buffer.OutIdx is at : %d\n", __FUNCTION__, __LINE__, Buffer.OutIdx);
+														} else if (new_buffer_size == old_buffer_size) {
+															//Can't resize buffer to the same size!
+															return -EPERM;
+														}
+														
 													}
 													
 													
@@ -400,7 +435,7 @@ static int __init Char_driver_init (void) {
 	//Creation du module + driver.
 	int result;
 
-	//for circular_buffer initialisation.
+	//for circular_buffer, tampon_from_user and tampon_for_user initialisation.
 	int i;
 
 	//ahah! "Char_driver" string must be in every printk for it to appear in dmesg. Ofcourse, grep is looking for Char_driver..
@@ -425,52 +460,56 @@ static int __init Char_driver_init (void) {
 		printk(KERN_WARNING"Char_driver ERROR IN cdev_add (%s:%s:%u)\n", __FILE__, __FUNCTION__, __LINE__);
 
 	//init the entire circular buffer
-	//kmalloc is used to allocate 50 bytes of memory for circular_buffer.
-	Buffer.circular_buffer = kmalloc(DEFAULT_SIZE_BUFFER, GFP_USER); //GFP_USER on behalf of user.
+	//kmalloc is used to allocate DEFAULT_SIZE_BUFFER bytes of memory for circular_buffer.
+	Buffer.circular_buffer = kmalloc(DEFAULT_SIZE_BUFFER+1, GFP_USER); //GFP_USER on behalf of user. DEFAULT_SIZE_BUFFER+1 is for '\0'
 	if(Buffer.circular_buffer == NULL){
-		printk(KERN_ALERT"Char_driver Could not allow 50 bytes of memory\n");
+		printk(KERN_ALERT"Char_driver Could not allow %i bytes of memory\n",DEFAULT_SIZE_BUFFER+1);
 	} else {
-		printk(KERN_ALERT"Char_driver 50 bytes of memory for the circular buffer\n");
+		printk(KERN_ALERT"Char_driver Allocated %i bytes of memory for the circular buffer\n",DEFAULT_SIZE_BUFFER+1);
 	}
 	for(i=0;i<DEFAULT_SIZE_BUFFER;i++)
 	{
 		Buffer.circular_buffer[i] = '$';//initialize one by one with a '$' except last character.
 	}
 	Buffer.circular_buffer[i] = '\0';//terminate char array with '\0'
+	//printk(KERN_WARNING"Char_driver_init (%s:%u), i is at : %d\n", __FUNCTION__, __LINE__, i);
 	printk(KERN_WARNING"Char_driver_init (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, Buffer.circular_buffer);
 
 	//init BDev temp tampon_for_user
-	BDev.tampon_for_user = kmalloc(DEFAULT_TEMP_BUF, GFP_USER); //GFP_USER on behalf of user.
+	BDev.tampon_for_user = kmalloc(DEFAULT_TEMP_BUF+1, GFP_USER); //GFP_USER on behalf of user. DEFAULT_TEMP_BUF+1 is for '\0'
 	if(BDev.tampon_for_user == NULL){
-		printk(KERN_ALERT"Char_driver Could not allow 10 bytes of memory\n");
+		printk(KERN_ALERT"Char_driver Could not allow %d bytes of memory\n",DEFAULT_TEMP_BUF+1);
 	} else {
-		printk(KERN_ALERT"Char_driver 10 bytes of memory for tampon_for_user\n");
+		printk(KERN_ALERT"Char_driver %d bytes of memory for tampon_for_user\n",DEFAULT_TEMP_BUF+1);
 	}
 	for(i=0;i<DEFAULT_TEMP_BUF;i++)
 	{
 		BDev.tampon_for_user[i] = '*';//initialize one by one with a '$' except last character.
 	}
 	BDev.tampon_for_user[i] = '\0';//terminate char array with '\0'
+	//printk(KERN_WARNING"Char_driver_init (%s:%u), i is at : %d\n", __FUNCTION__, __LINE__, i);
 	printk(KERN_WARNING"Char_driver_init (%s:%u), tampon_for_user is : %s\n", __FUNCTION__, __LINE__, BDev.tampon_for_user);
 
 	//init BDev tampon_from_user
-	BDev.tampon_from_user = kmalloc(DEFAULT_TEMP_BUF, GFP_USER); //GFP_USER on behalf of user.
+	BDev.tampon_from_user = kmalloc(DEFAULT_TEMP_BUF+1, GFP_USER); //GFP_USER on behalf of user. DEFAULT_TEMP_BUF+1 is for '\0'
 	if(BDev.tampon_from_user == NULL){
-		printk(KERN_ALERT"Char_driver Could not allow 10 bytes of memory\n");
+		printk(KERN_ALERT"Char_driver Could not allow %d bytes of memory\n",DEFAULT_TEMP_BUF+1);
 	} else {
-		printk(KERN_ALERT"Char_driver 10 bytes of memory for tampon_from_user\n");
+		printk(KERN_ALERT"Char_driver %d bytes of memory for tampon_from_user\n",DEFAULT_TEMP_BUF+1);
 	}
 	for(i=0;i<DEFAULT_TEMP_BUF;i++)
 	{
 		BDev.tampon_from_user[i] = '*';//initialize one by one with a '$' except last character.
 	}
 	BDev.tampon_from_user[i] = '\0';//terminate char array with '\0'
+	//printk(KERN_WARNING"Char_driver_init (%s:%u), i is at : %d\n", __FUNCTION__, __LINE__, i);
 	printk(KERN_WARNING"Char_driver_init (%s:%u), tampon_from_user is : %s\n", __FUNCTION__, __LINE__, BDev.tampon_from_user);
 
-
+	
 	//init Buffer size.
 	Buffer.BufSize = DEFAULT_SIZE_BUFFER;
-
+	
+	
 	//init InIdx,OutIdx.
 	Buffer.InIdx = 0;
 	Buffer.OutIdx = 0;
