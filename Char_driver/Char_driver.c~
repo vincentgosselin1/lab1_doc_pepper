@@ -126,14 +126,6 @@ int GetNumData(struct BufStruct *Buf){
 		}
 	}
 	return char_counter;
-	/*
-	//could be negative so
-	if(Buf->InIdx-Buf->OutIdx<0){
-		return -(Buf->OutIdx-Buf->InIdx);
-	} else {
-		return (Buf->InIdx-Buf->OutIdx);
-	}
-	*/
 }
 int GetNumReader(struct Buf_Dev *Buf){
 	return (Buf->numReader);
