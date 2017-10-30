@@ -532,6 +532,33 @@ void execute(int choice){
 		//7 Set a new size for the buffer
 		case 7 :
 		{
+			printf("Testing IOCTL : Set new size for circular Buffer\r\n");
+			//file descriptor used for driver interaction. 
+			int fd;
+			//Driver is called "etsele_cdev". 
+			fd = open("/dev/etsele_cdev", O_RDWR);
+			if(fd<0){
+				printf("ERROR in OPENNING\r\n");
+				break;
+			}
+			int ret;
+			unsigned long value;
+
+			//Type in the new size of the circular buffer
+			printf("Type in the new size of the circular buffer\r\n");
+			value = (unsigned long)scan_input();
+			ret = ioctl(fd,BUFFER_IOCTL_SETSIZE,&value);//2nd parameter is the command associated, 3rd is pointer to unsigned long.
+			if(ret<0){
+				printf("ERROR, Cannot change circular buffer to this size\r\n");
+			}
+
+			//Close the file now.
+			//int ret;
+			ret = close(fd);
+			if(ret<0){
+				printf("ERROR in closing\r\n");
+			}
+
 			//to do
 			break;
 		}

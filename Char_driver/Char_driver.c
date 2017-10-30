@@ -331,6 +331,11 @@ static long Char_driver_ioctl(struct file *filp, unsigned int cmd, unsigned long
 													//SEMAPHORE WILL GO HERE//
 													tmp = GetNumReader(&BDev);//return number of reader in user program.
 													//SEMAPHORE WILL GO HERE//
+													
+													//NUMREADER is equal to 1 when no reader...
+													//	This is because openning the file with IOCTL, opens the driver as a reader.
+													// So the value is always +1 superior to the actual number of readers.
+													tmp = tmp - 1;
 													ret = __put_user(tmp, (int __user *)arg);
 													break;
 		case BUFFER_IOCTL_BUFFERSIZE : 
@@ -339,7 +344,39 @@ static long Char_driver_ioctl(struct file *filp, unsigned int cmd, unsigned long
 													tmp = GetBufSize(&Buffer);//return size of circular buffer.
 													//SEMAPHORE WILL GO HERE//
 													ret = __put_user(tmp, (int __user *)arg);
-													break;										
+													break;
+
+		case BUFFER_IOCTL_SETSIZE : 		
+
+													//PERMISSION ADMIN?
+													//SEMAPHORE WILL GO HERE!
+													//printk(KERN_WARNING"Char_driver_IOCTL_SETSIZE (%s:%u), You want to change size to : %d\n", __FUNCTION__, __LINE__,);
+													ret = __get_user(tmp, (int __user *)arg);
+													{
+														//to store position of InIdx and OutIdx.
+														int old_InIdx,old_OutIdx;
+														//to store user input
+														int new_buffer_size = tmp;
+														printk(KERN_WARNING"Char_driver_IOCTL_SETSIZE (%s:%u), You want to change size to : %d\n", __FUNCTION__, __LINE__, new_buffer_size);
+
+														//First, check if number of data present in buffer is larger than user new buffer size.
+														if(GetNumData(&Buffer) > new_buffer_size)
+														{
+															return -EPERM;
+														}
+
+														//Second, store position of InIdx and OutIdx.
+														old_InIdx = Buffer.InIdx;
+														old_OutIdx = Buffer.OutIdx;
+													}
+													
+													
+
+													
+													break;
+													
+
+								
 		//case ...
 		default: return -ENOTTY;
 		}
