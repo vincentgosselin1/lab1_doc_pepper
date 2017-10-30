@@ -240,55 +240,25 @@ void execute(int choice){
 				switch (choice) {
 					case 1 :
 							{ 
-								//Writing into Char_driver
-				
-								//Type what you want to put in the buffer:
-								printf("Type what you want to put in the buffer \r\n");
-								//user_input for test : This_is_me_and_this_is_you_bad is 30 characters long.
-								char * user_input = scan_text_input();
-								printf("You typed : %s \r\n", user_input);
-								int user_input_len = strlen(user_input);
-								printf("Size of user_input_len is : %d\r\n",user_input_len);
-								int user_input_index = 0; //used to parse 10 characters at the time.
 
-				
-								//To output every character in buffer.
-								// string to test is "This_is_me_vincent_gosselin", 27 characters long.
-								char tempbuf[11];//used to parse 10 characters (or less) at the time from user input into driver.
-								int i;//index to copy user input in temp.
-								int number_of_tempbuf_to_send = (user_input_len - (user_input_len%10))/10; //results in 2.
-								int j;//counting number of buffer of size 10 to send.
-								int number_of_char_in_last_transfer = user_input_len%10;//results in 7.
-								int ret;//return value of every write.
-
-								//Sends 10 characters everytime.
-								for(j=0;j<number_of_tempbuf_to_send;j++)
-								{
-									for(i=0;i<10;i++)
-									{
-									tempbuf[i] = user_input[user_input_index];
-									user_input_index++;
-									}
-									//writing 10 characters at time.
-									ret = write(fd, tempbuf, 10);
-									if(ret<0){ printf("ERROR in WRITING\r\n");}
-						
-									tempbuf[10] = '\0';
-									printf("tempbuf was : %s\r\n",tempbuf);
-								}
-								//printf("number_of_char_in_last_transfer is : %d\r\n",number_of_char_in_last_transfer);
-								//Sends less than 10 characters.
-								for(i=0;i<number_of_char_in_last_transfer;i++)
-								{
-									tempbuf[i] = user_input[user_input_index];
-									user_input_index++;
-								}
-								tempbuf[number_of_char_in_last_transfer] = '\0';
-								//writing less than 10 characters at time. 
-								ret = write(fd, tempbuf, number_of_char_in_last_transfer);
-								if(ret<0){ printf("ERROR in WRITING\r\n");}
-								printf("tempbuf was : %s\r\n",tempbuf);
-								break;
+										//Writing into Char_driver
+										//Type what you want to put in the buffer:
+										printf("Type what you want to put in the buffer \r\n");
+										//user_input for test : This_is_me_and_this_is_you_bad is 30 characters long.
+										char * user_input = scan_text_input();
+										printf("You typed : %s \r\n", user_input);
+										int user_input_len = strlen(user_input);
+										printf("Size of user_input_len is : %d\r\n",user_input_len);
+										//writing the whole string in the buffer
+										int ret;//ret is the number of bytes written to driver.
+										ret = write(fd, user_input, user_input_len);
+										if(ret>0){
+											printf("Successfully wrote %d bytes into driver.\r\n",ret);
+										} else {
+											printf("ERROR in writing\r\n");
+										}
+										break;	
+							
 							}
 					case 2 :
 							{
@@ -298,54 +268,28 @@ void execute(int choice){
 								int number_input = scan_input();//Test with 27.
 								printf("You typed: %d\n", number_input);
 
-								char tempbuf[11];//used to parse 10 characters (or less) at the time to user from driver.
-								int i;//index to copy temp to user.
-								int user_output_index = 0; //used to parse 10 characters at the time.
-								int j;//counting number of buffer of size 10 to receive.
-								int number_of_tempbuf_to_receive = (number_input - (number_input%10))/10;//results in 2.
-								int number_of_char_in_last_transfer = number_input%10;//results in 7.
-								int ret;//return value of every read.
 
-								//cleaning user_text_output to display data retrieved from buffer.
-								for(i=0;i<255;i++)
-								{
-									user_text_output[i] = ' ';
-								}
-								user_text_output[255] = '\0';//to remove junk characters.
+											//cleaning user_text_output to display data retrieved from buffer.
+											int i;
+											for(i=0;i<255;i++)
+											{
+											user_text_output[i] = ' ';
+											}
+											user_text_output[255] = '\0';//to remove junk characters.
+				
 
-								//Receive 10 characters everytime.
-								for(j=0;j<number_of_tempbuf_to_receive;j++)
-								{
-									//reading 10 characters at time.
-									ret = read(fd, tempbuf, 10);
-									if(ret<0){ printf("ERROR in READING\r\n");}
-						
-									tempbuf[10] = '\0'; //to remove junk characters.
-									printf("tempbuf is : %s\r\n",tempbuf);
-
-									for(i=0;i<10;i++)
-									{
-										//Building user_text_output to display received characters.
-										user_text_output[user_output_index] = tempbuf[i];
-										user_output_index++;
-	
-										//tempbuf[i] = user_input[user_input_index];
-										//user_output_index++;
-									}
-								}
-								//Receive less than 10 characters.
-								ret = read(fd, tempbuf, number_of_char_in_last_transfer);
-								if(ret<0){ printf("ERROR in READING\r\n");}
-
-								printf("tempbuf is : %s\r\n",tempbuf);
-								//Building user_text_output to display received characters.
-								for(i=0;i<number_of_char_in_last_transfer;i++)
-								{
-									user_text_output[user_output_index] = tempbuf[i];
-									user_output_index++;
-								}
-								printf("Data received is : %s\r\n", user_text_output);
-								break;
+											//READING from buffer.
+											int ret;//return value of every read.
+											ret = read(fd, user_text_output, number_input);
+											if(ret>0){ 
+												printf("Success in READING %d bytes\r\n",ret); 
+											} else {
+												printf("ERROR in READING\r\n");
+											}
+											printf("Data received is : %s\r\n", user_text_output);
+											break;
+																			
+																			
 							}
 					case 3 :
 							{
