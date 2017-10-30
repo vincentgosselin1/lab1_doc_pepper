@@ -20,6 +20,7 @@ __attribute__((section("__versions"))) = {
 	{ 0xf4edea6c, __VMLINUX_SYMBOL_STR(module_layout) },
 	{ 0xfbbd2ff7, __VMLINUX_SYMBOL_STR(cdev_del) },
 	{ 0x10380b27, __VMLINUX_SYMBOL_STR(kmalloc_caches) },
+	{ 0xd2b09ce5, __VMLINUX_SYMBOL_STR(__kmalloc) },
 	{ 0xc13c3f5e, __VMLINUX_SYMBOL_STR(cdev_init) },
 	{ 0x4c4fef19, __VMLINUX_SYMBOL_STR(kernel_stack) },
 	{ 0xb6b46a7c, __VMLINUX_SYMBOL_STR(param_ops_int) },

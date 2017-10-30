@@ -35,10 +35,8 @@ Simple Driver to exchange bytes between programs.
 #include "buffer_ioctl.h"
 
 //CUSTOM DEFINES
-#define DEFAULT_SIZE_BUFFER 50
-//#define DEFAULT_SIZE_BUFFER 51 //one extra character for '\0'
+#define DEFAULT_SIZE_BUFFER 20
 #define DEFAULT_TEMP_BUF 16
-//#define DEFAULT_TEMP_BUF 11  //one extra character for '\0'
 
 MODULE_LICENSE("Dual BSD/GPL");
 
@@ -116,8 +114,11 @@ int BufOut(struct BufStruct *Buf, char *Data) {
 
 //IOCTL FUNCTIONS
 int GetNumData(struct BufStruct *Buf){
-	//return 666;	
+	//could be negative so
+	if(Buf->InIdx < Buf->OutIdx){
+	} else {
 	return (Buf->InIdx-Buf->OutIdx);
+	}
 }
 int GetNumReader(struct Buf_Dev *Buf){
 	return (Buf->numReader);
@@ -244,7 +245,7 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 	//send less 16 bytes to user.
 	copy_to_user((buf+index_for_string_reconstruct), BDev.tampon_for_user, number_of_char_in_last_transfer);
 
-	printk(KERN_WARNING"Char_driver_write (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, Buffer.circular_buffer);
+	printk(KERN_WARNING"Char_driver_read (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, Buffer.circular_buffer);
 	return 1;
 	
 }
@@ -365,17 +366,20 @@ static long Char_driver_ioctl(struct file *filp, unsigned int cmd, unsigned long
 													//SEMAPHORE WILL GO HERE!
 													//printk(KERN_WARNING"Char_driver_IOCTL_SETSIZE (%s:%u), You want to change size to : %d\n", __FUNCTION__, __LINE__,);
 													ret = __get_user(tmp, (int __user *)arg);
+													//local scope.
 													{
 														//to store position of InIdx and OutIdx.
 														int old_InIdx,old_OutIdx;
 														//to store old buffer size
 														int old_buffer_size = GetBufSize(&Buffer);
+														//to store number of data.
+														int number_of_data = GetNumData(&Buffer);
 														//to store user input
 														int new_buffer_size = tmp;
 														printk(KERN_WARNING"Char_driver_IOCTL_SETSIZE (%s:%u), You want to change size to : %d\n", __FUNCTION__, __LINE__, new_buffer_size);
 
 														//First, check if number of data present in buffer is larger than user new buffer size.
-														if(GetNumData(&Buffer) > new_buffer_size)
+														if(number_of_data > new_buffer_size)
 														{
 															return -EPERM;
 														}
@@ -384,26 +388,44 @@ static long Char_driver_ioctl(struct file *filp, unsigned int cmd, unsigned long
 														old_InIdx = Buffer.InIdx;
 														old_OutIdx = Buffer.OutIdx;
 
-														//Third, displace InIdx and OutIdx. 2 possible case.
-														//	If new_buffer_size > old_buffer_size
-														//		InIdx and OutIdx stay the same.
-														// Else If new_buffer_size < old_buffer_size
-														//		InIdx wraps around, OutIdx stay the same.
-														if(new_buffer_size > old_buffer_size){
-															//Do nothing since they stay the same.
-															printk(KERN_WARNING"Char_driver_IOCTL_SETSIZE (%s:%u), NEW Buffer.InIdx is at : %d\n", __FUNCTION__, __LINE__, Buffer.InIdx);
-															printk(KERN_WARNING"Char_driver_IOCTL_SETSIZE (%s:%u), NEW Buffer.OutIdx is at : %d\n", __FUNCTION__, __LINE__, Buffer.OutIdx);
-														} else if(new_buffer_size < old_buffer_size){
-															Buffer.InIdx = (unsigned int) old_buffer_size%new_buffer_size;
-															//Buffer.OutIdx stay the same.
-															printk(KERN_WARNING"Char_driver_IOCTL_SETSIZE (%s:%u), NEW Buffer.InIdx is at : %d\n", __FUNCTION__, __LINE__, Buffer.InIdx);
-															printk(KERN_WARNING"Char_driver_IOCTL_SETSIZE (%s:%u), NEW Buffer.OutIdx is at : %d\n", __FUNCTION__, __LINE__, Buffer.OutIdx);
-														} else if (new_buffer_size == old_buffer_size) {
-															//Can't resize buffer to the same size!
-															return -EPERM;
-														}
+
+															//local scope 2
+															{
+																//Third Create a new buffer with new size.
+																char * new_circular_buffer;
+																int i; //to initialize this new buffer.
+																new_circular_buffer = kmalloc(new_buffer_size+1, GFP_USER); //GFP_USER on behalf of user. new_buffer_size+1 is for '\0'
+																//init new_circular_buffer with '$'.
+																for(i=0;i<new_buffer_size;i++)
+																{
+																	new_circular_buffer[i] = '$';
+																}
+																new_circular_buffer[i] = '\0';
+
+																//Four, copy characters from old buffer from OutIdx to InIdx. 
+																//Here, OutIdx will always start at 0 for every new buffer. (Simpler like that)
+																for(i=0;i<number_of_data;i++)
+																{
+																	new_circular_buffer[i] = Buffer.circular_buffer[(old_OutIdx+i)%old_buffer_size];
+																}
+
+																//printk(KERN_WARNING"Char_driver (%s:%u), NEW circular_buffer is : %s\n", __FUNCTION__, __LINE__, new_circular_buffer);
+																
+																//Five, kfree old buffer and replace with new one.
+																kfree(Buffer.circular_buffer);
+																//kfree(new_circular_buffer);
+																Buffer.circular_buffer = new_circular_buffer;
+																printk(KERN_WARNING"Char_driver (%s:%u), Circular_buffer is now : %s\n", __FUNCTION__, __LINE__, Buffer.circular_buffer);
+
+																//Six, adjust new InIdx, OutIdx and BufSize.
+																Buffer.InIdx = number_of_data;
+																Buffer.OutIdx = 0;
+																Buffer.BufSize = new_buffer_size;
+
+															}//end local scope 2
+															
 														
-													}
+													}//end local scope 1
 													
 													
 
