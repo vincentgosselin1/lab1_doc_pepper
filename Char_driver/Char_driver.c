@@ -139,16 +139,6 @@ int GetBufSize(struct BufStruct *Buf){
 int Char_driver_open(struct inode *inode, struct file *filp) {
 	printk(KERN_WARNING"Char_driver_open (%s:%u)\n", __FUNCTION__, __LINE__);
 
-
-	/*
-	//File openning verification
-	//Checking if a WRITER is already open.
-	if(BDev.numWriter > 1){
-		//Can't open, return error code.
-		return -EBUSY;		
-		//return -ENOTTY;
-	}*/
-
 	//Incrementing number of readers/writers.
 	//if openning in read_only, increment number of reader. Maybe check if numReader and numWriter are positive numbers.
 	if((filp->f_flags & O_ACCMODE) == O_RDONLY) {
@@ -175,9 +165,6 @@ int Char_driver_open(struct inode *inode, struct file *filp) {
 		//return -EBUSY;		
 		return -ENOTTY;
 	}
-
-	//printk(KERN_WARNING"Char_driver BDev.numWriter is at : %d\n", BDev.numWriter);
-	//printk(KERN_WARNING"Char_driver BDev.numReader is at : %d\n", BDev.numReader);
 
 	return 0;
 }
@@ -223,7 +210,13 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 		for(i=0;i<DEFAULT_TEMP_BUF;i++)
 		{
 			char char_received;
+
+			//SEMAPHORE DOWN
+
 			ret = BufOut(&Buffer, &char_received);
+
+			//SEMAPHORE UP
+
 			if(ret<0) { 
 				printk(KERN_WARNING"Buffer is EMPTY\n");
 				//Something to do here.
@@ -242,7 +235,13 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 	for(i=0;i<number_of_char_in_last_transfer;i++)
 		{
 			char char_received;
+			
+			//SEMAPHORE DOWN
+
 			ret = BufOut(&Buffer, &char_received);
+
+			//SEMAPHORE UP			
+
 			if(ret<0) { 
 				printk(KERN_WARNING"Buffer is EMPTY\n");
 				//Something to do here.
@@ -280,7 +279,15 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 		{
 			char char_to_transfer;
 			char_to_transfer = BDev.tampon_from_user[i];
+
+			//SEMAPHORE DOWN
+			down_interruptible(&BDev.SemBuf);
+
 			ret = BufIn(&Buffer, &char_to_transfer);
+
+			//SEMAPHORE UP
+			up(&BDev.SemBuf);
+
 			if(ret<0) { 
 				printk(KERN_WARNING"Char_driver Buffer is FULL\n");
 				//Something to do here.
@@ -298,7 +305,15 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 		{
 			char char_to_transfer;
 			char_to_transfer = BDev.tampon_from_user[i];
+
+			//SEMAPHORE DOWN
+			down_interruptible(&BDev.SemBuf);
+
 			ret = BufIn(&Buffer, &char_to_transfer);
+
+			//SEMAPHORE UP
+			up(&BDev.SemBuf);			
+	
 			if(ret<0) { 
 				printk(KERN_WARNING"Char_driver Buffer is FULL\n");
 				//Something to do here.
@@ -553,6 +568,10 @@ static int __init Char_driver_init (void) {
 	//init number of writer and reader.
 	BDev.numWriter = 0;
 	BDev.numReader = 0;
+
+	//init du semaphore
+	//BDev.SemBuf
+	sema_init(&BDev.SemBuf,1);//1 for unlocked.
 
 	return 0;
 }
