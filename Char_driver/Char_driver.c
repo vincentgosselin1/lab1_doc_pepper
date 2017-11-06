@@ -217,17 +217,26 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 			char char_received;
 
 			//SEMAPHORE DOWN
+			down_interruptible(&BDev.SemBuf);
 
 			ret = BufOut(&Buffer, &char_received);
+			//wakeup write here!
 
 			//SEMAPHORE UP
+			up(&BDev.SemBuf);
 
-			if(ret<0) { 
-				printk(KERN_WARNING"Char_driver Buffer is EMPTY\n");
-				//Something to do here.
-				//return -EPERM;
-				copy_to_user((buf+index_for_string_reconstruct), BDev.tampon_for_user, number_of_bytes_transfered);
-				return number_of_bytes_transfered;  
+			if(ret<0){
+				//NON-BLOQUANT
+				if(filp->f_flags & O_NONBLOCK){ 
+					printk(KERN_WARNING"Char_driver Buffer is EMPTY\n");
+					//Something to do here.
+					//return -EPERM;
+					copy_to_user((buf+index_for_string_reconstruct), BDev.tampon_for_user, number_of_bytes_transfered);
+					return number_of_bytes_transfered;
+				} else {
+				//BLOQUANT
+					printk(KERN_WARNING"Char_driver supposed to BLOCK\n");
+				} 
 			}
 			//put inside temp buff for user.
 			BDev.tampon_for_user[i] = char_received;
@@ -244,17 +253,27 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 			char char_received;
 			
 			//SEMAPHORE DOWN
+			down_interruptible(&BDev.SemBuf);
 
 			ret = BufOut(&Buffer, &char_received);
+			//wakeup write here!
 
 			//SEMAPHORE UP			
+			up(&BDev.SemBuf);
 
-			if(ret<0) { 
-				printk(KERN_WARNING"Char_driver Buffer is EMPTY\n");
-				//Something to do here.
-				//return -EPERM;
-				copy_to_user((buf+index_for_string_reconstruct), BDev.tampon_for_user, number_of_char_in_last_transfer);
-				return number_of_bytes_transfered; 
+			if(ret<0) {
+				//NON-BLOQUANT 
+				if(filp->f_flags & O_NONBLOCK){
+					printk(KERN_WARNING"Char_driver Buffer is EMPTY\n");
+					//Something to do here.
+					//return -EPERM;
+					copy_to_user((buf+index_for_string_reconstruct), BDev.tampon_for_user, number_of_char_in_last_transfer);
+					return number_of_bytes_transfered;
+				} else {
+				//BLOQUANT
+					printk(KERN_WARNING"Char_driver supposed to BLOCK\n");
+				}
+ 
 			}
 			//put inside temp buff for user.
 			BDev.tampon_for_user[i] = char_received;
@@ -293,17 +312,23 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 			down_interruptible(&BDev.SemBuf);
 
 			ret = BufIn(&Buffer, &char_to_transfer);
+			//wakeup read here!
 
 			//SEMAPHORE UP
 			up(&BDev.SemBuf);
 
-			if(ret<0) { 
-				printk(KERN_WARNING"Char_driver Buffer is FULL\n");
-				//Something to do here.
-				//return -EPERM;
-				copy_from_user(BDev.tampon_from_user, (buf+index_from_user_input), number_of_bytes_transfered);
-				return number_of_bytes_transfered;  
-			}
+			if(ret<0) {
+				if(filp->f_flags & O_NONBLOCK){ 
+					printk(KERN_WARNING"Char_driver Buffer is FULL\n");
+					//Something to do here.
+					//return -EPERM;
+					copy_from_user(BDev.tampon_from_user, (buf+index_from_user_input), number_of_bytes_transfered);
+					return number_of_bytes_transfered;
+				}  else {
+				//BLOQUANT
+					printk(KERN_WARNING"Char_driver supposed to BLOCK\n");
+				} 
+			} 	
 			number_of_bytes_transfered++;
 		}
 		//increment index_from_user_input to copy next 16 bytes.
@@ -321,17 +346,23 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 			down_interruptible(&BDev.SemBuf);
 
 			ret = BufIn(&Buffer, &char_to_transfer);
+			//wakeup read here!
 
 			//SEMAPHORE UP
 			up(&BDev.SemBuf);			
 	
 			if(ret<0) { 
-				printk(KERN_WARNING"Char_driver Buffer is FULL\n");
-				//Something to do here.
-				//return -EPERM;
-				copy_from_user(BDev.tampon_from_user, (buf+index_from_user_input), number_of_char_in_last_transfer);
-				return number_of_bytes_transfered; 
-			}
+				if(filp->f_flags & O_NONBLOCK){
+					printk(KERN_WARNING"Char_driver Buffer is FULL\n");
+					//Something to do here.
+					//return -EPERM;
+					copy_from_user(BDev.tampon_from_user, (buf+index_from_user_input), number_of_char_in_last_transfer);
+					return number_of_bytes_transfered;
+				} else {
+				//BLOQUANT
+					printk(KERN_WARNING"Char_driver supposed to BLOCK\n");
+				} 
+			}	
 			number_of_bytes_transfered++;
 		}
 	printk(KERN_WARNING"Char_driver_write (%s:%u), circular_buffer is : %s\n", __FUNCTION__, __LINE__, Buffer.circular_buffer);

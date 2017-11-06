@@ -53,14 +53,17 @@ void display_welcome(){
 
 void display_menu(){
 	printf("What do you want to do?\r\n");
-	printf("1. Open driver in WRITE ONLY\r\n");
-	printf("2. Open driver in READ ONLY\r\n");
-	printf("3. Open driver in READ/WRITE\r\n");
+	printf("1. Open driver in WRITE ONLY NON-BLOCKING\r\n");
+	printf("2. Open driver in READ ONLY NON-BLOCKING\r\n");
+	printf("3. Open driver in READ/WRITE NON-BLOCKING\r\n");
 	printf("4. Return number of data in buffer\r\n");
 	printf("5. Return number of readers\r\n");
 	printf("6. Return size of the buffer\r\n");
 	printf("7. Set a new size for the buffer (default is 50)\r\n");
-	printf("8. Exit the program \r\n");
+	printf("8. Open driver in WRITE ONLY BLOCKING\r\n");
+	printf("9. Open driver in READ ONLY BLOCKING\r\n");
+	printf("10. Open driver in READ/WRITE BLOCKING\r\n");
+	printf("11. Exit the program \r\n");
 	
 }
 
@@ -78,15 +81,15 @@ char * scan_text_input(){
 
 void execute(int choice){
 	switch (choice) {
-		//1 for  WRITE ONLY
+		//1 for  WRITE ONLY NON-BLOCK
 		case 1 : 
 		{
 			//WRITING
-			printf("Testing file_operation WRITE\r\n");
+			printf("Testing file_operation WRITE NON-BLOCK\r\n");
 			//file descriptor used for driver interaction. 
 			int fd;
 			//Driver is called "etsele_cdev". 
-			fd = open("/dev/etsele_cdev", O_WRONLY);
+			fd = open("/dev/etsele_cdev", O_WRONLY | O_NONBLOCK);
 			if(fd<0){
 				printf("ERROR in OPENNING\r\n");
 				break;
@@ -139,16 +142,16 @@ void execute(int choice){
 			}
 			break;
 		}
-		//2 for  READ ONLY
+		//2 for  READ ONLY NON-BLOCK
 		case 2 :
 		{
 			//READING
-			printf("Testing file_operation READ\r\n");
+			printf("Testing file_operation READ NON-BLOCK\r\n");
 		
 			//file descriptor used for driver interaction. 
 			int fd;
 			//Driver is called "etsele_cdev". 
-			fd = open("/dev/etsele_cdev", O_RDONLY);
+			fd = open("/dev/etsele_cdev", O_RDONLY | O_NONBLOCK);
 			if(fd<0){
 				printf("ERROR in OPENNING\r\n");
 				break;
@@ -423,8 +426,146 @@ void execute(int choice){
 			//to do
 			break;
 		}
-		//8 to Exit the program
-		case 8 :	
+		//WRITE ONLY BLOCKING
+		case 8:
+		{
+			//WRITING BLOCKING
+			printf("Testing file_operation WRITE BLOCKING\r\n");
+			//file descriptor used for driver interaction. 
+			int fd;
+			//Driver is called "etsele_cdev". 
+			fd = open("/dev/etsele_cdev", O_WRONLY);
+			if(fd<0){
+				printf("ERROR in OPENNING\r\n");
+				break;
+			}
+
+			//No_more_request used for multiple write by user. 1 when no more request from user.
+			int no_more_request = 0;
+			while(no_more_request != 1)
+			{
+
+							//Writing into Char_driver
+							//Type what you want to put in the buffer:
+							printf("Type what you want to put in the buffer \r\n");
+							//user_input for test : This_is_me_and_this_is_you_bad is 30 characters long.
+							char * user_input = scan_text_input();
+							printf("You typed : %s \r\n", user_input);
+							int user_input_len = strlen(user_input);
+							printf("Size of user_input_len is : %d\r\n",user_input_len);
+							//writing the whole string in the buffer
+							int ret;//ret is the number of bytes written to driver.
+							ret = write(fd, user_input, user_input_len);
+							if(ret>0){
+								printf("Successfully wrote %d bytes into driver.\r\n",ret);
+							} else {
+								printf("ERROR in writing\r\n");
+							}			
+
+			//Do you want to write something else?
+			printf("Do you want to write something else?\r\n");
+			printf("1. YES\r\n");
+			printf("2. NO\r\n");
+			int choice = scan_input();
+			printf("You entered: %d\n", choice);
+				switch (choice) {
+					case 1 :
+							no_more_request = 0;
+							break;
+					case 2 :
+							no_more_request = 1;
+							break;
+				}
+			
+			}//while loop to write again.
+	
+			//Close the file now.
+			int ret;
+			ret = close(fd);
+			if(ret<0){
+				printf("ERROR in closing\r\n");
+			}
+			break;
+		}
+		//READ ONLY BLOCKING
+		case 9 : 
+		{
+			//READING
+			printf("Testing file_operation READ BLOCKING\r\n");
+		
+			//file descriptor used for driver interaction. 
+			int fd;
+			//Driver is called "etsele_cdev". 
+			fd = open("/dev/etsele_cdev", O_RDONLY);
+			if(fd<0){
+				printf("ERROR in OPENNING\r\n");
+				break;
+			}
+
+
+			//No_more_request used for multiple read by user. 1 when no more request from user.
+			int no_more_request = 0;
+			while(no_more_request != 1)
+			{
+
+				//How many characters do you want to read?
+				//Reading from Char_driver
+				printf("How many characters do you want to read? \r\n");
+				int number_input = scan_input();//Test with 27.
+				printf("You typed: %d\n", number_input);
+				
+
+							//cleaning user_text_output to display data retrieved from buffer.
+							int i;
+							for(i=0;i<255;i++)
+							{
+								user_text_output[i] = ' ';
+							}
+							user_text_output[255] = '\0';//to remove junk characters.
+				
+
+							//READING from buffer.
+							int ret;//return value of every read.
+							ret = read(fd, user_text_output, number_input);
+							if(ret>0){ 
+								printf("Success in READING %d bytes\r\n",ret); 
+							} else {
+								printf("ERROR in READING\r\n");
+							}
+							printf("Data received is : %s\r\n", user_text_output);
+				
+
+
+			//Do you want to read something else?
+			printf("Do you want to read something else?\r\n");
+			printf("1. YES\r\n");
+			printf("2. NO\r\n");
+			int choice = scan_input();
+			printf("You entered: %d\n", choice);
+				switch (choice) {
+					case 1 : 
+							no_more_request = 0;
+							break;
+					case 2 :
+							no_more_request = 1;
+							break;
+				}
+			
+			}//while to read again.
+
+		//Close the file now.
+			int ret;
+			ret = close(fd);
+			if(ret<0){
+				printf("ERROR in closing\r\n");
+			}
+			break;
+		}
+		
+
+
+		//11 to Exit the program
+		case 11 :	
 		{
 			operation_done = 1;
 			break;	
