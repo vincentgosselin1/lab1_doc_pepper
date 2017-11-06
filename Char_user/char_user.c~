@@ -222,7 +222,7 @@ void execute(int choice){
 			//file descriptor used for driver interaction. 
 			int fd;
 			//Driver is called "etsele_cdev". 
-			fd = open("/dev/etsele_cdev", O_RDWR);
+			fd = open("/dev/etsele_cdev", O_RDWR | O_NONBLOCK);
 			if(fd<0){
 				printf("ERROR in OPENNING\r\n");
 				break;
@@ -562,7 +562,102 @@ void execute(int choice){
 			break;
 		}
 		
+		//10 READ/WRITE BLOCKING
+		case 9 :
+		{
+			//file descriptor used for driver interaction. 
+			int fd;
+			//Driver is called "etsele_cdev". 
+			fd = open("/dev/etsele_cdev", O_RDWR);
+			if(fd<0){
+				printf("ERROR in OPENNING\r\n");
+				break;
+			}
 
+			//No_more_request used for multiple read/write by user. 1 when no more request from user.
+			int no_more_request = 0;
+			while(no_more_request != 1)
+			{
+
+			printf("Do you want to write or read or close file?\r\n");
+			printf("1. WRITE\r\n");
+			printf("2. READ\r\n");
+			printf("3. Close file\r\n");
+			int choice = scan_input();
+			printf("You entered: %d\n", choice);
+
+				switch (choice) {
+					case 1 :
+							{ 
+
+										//Writing into Char_driver
+										//Type what you want to put in the buffer:
+										printf("Type what you want to put in the buffer \r\n");
+										//user_input for test : This_is_me_and_this_is_you_bad is 30 characters long.
+										char * user_input = scan_text_input();
+										printf("You typed : %s \r\n", user_input);
+										int user_input_len = strlen(user_input);
+										printf("Size of user_input_len is : %d\r\n",user_input_len);
+										//writing the whole string in the buffer
+										int ret;//ret is the number of bytes written to driver.
+										ret = write(fd, user_input, user_input_len);
+										if(ret>0){
+											printf("Successfully wrote %d bytes into driver.\r\n",ret);
+										} else {
+											printf("ERROR in writing\r\n");
+										}
+										break;	
+							
+							}
+					case 2 :
+							{
+								//How many characters do you want to read?
+								//Reading from Char_driver
+								printf("How many characters do you want to read? \r\n");
+								int number_input = scan_input();//Test with 27.
+								printf("You typed: %d\n", number_input);
+
+
+											//cleaning user_text_output to display data retrieved from buffer.
+											int i;
+											for(i=0;i<255;i++)
+											{
+											user_text_output[i] = ' ';
+											}
+											user_text_output[255] = '\0';//to remove junk characters.
+				
+
+											//READING from buffer.
+											int ret;//return value of every read.
+											ret = read(fd, user_text_output, number_input);
+											if(ret>0){ 
+												printf("Success in READING %d bytes\r\n",ret); 
+											} else {
+												printf("ERROR in READING\r\n");
+											}
+											printf("Data received is : %s\r\n", user_text_output);
+											break;
+																			
+																			
+							}
+					case 3 :
+							{
+								no_more_request = 1;
+								break;
+							}
+				}
+
+			}//while to read/write again.
+			
+			//Close the file now.
+			int ret;
+			ret = close(fd);
+			if(ret<0){
+				printf("ERROR in closing\r\n");
+			}
+
+			break;
+		}
 
 		//11 to Exit the program
 		case 11 :	

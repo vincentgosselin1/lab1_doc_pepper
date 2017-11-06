@@ -15,6 +15,7 @@ Simple Driver to exchange bytes between programs.
 #include <linux/slab.h>
 #include <linux/errno.h>
 #include <linux/fcntl.h>
+#include <linux/sched.h>//Waitqueue need this
 #include <linux/wait.h>
 #include <linux/spinlock.h>
 #include <linux/device.h>
@@ -34,6 +35,8 @@ Simple Driver to exchange bytes between programs.
 #include <asm/ioctl.h>
 #include "buffer_ioctl.h"
 
+
+
 //CUSTOM DEFINES
 #define DEFAULT_SIZE_BUFFER 50
 #define DEFAULT_TEMP_BUF 16
@@ -49,6 +52,9 @@ EXPORT_SYMBOL_GPL(Char_driver_Var);
 //////////////////////////////////////////////////////////////////
 /* Custom structures to put everything global to program inside */
 //////////////////////////////////////////////////////////////////
+static DECLARE_WAIT_QUEUE_HEAD(wq);
+static DECLARE_WAIT_QUEUE_HEAD(rq);
+
 struct BufStruct {
 	//Circular Buffer usefull stuff
 	//char circular_buffer[10];
@@ -68,6 +74,8 @@ struct Buf_Dev {
 	struct semaphore SemBuf;
 	unsigned short numWriter;
 	unsigned short numReader;
+	//wait_queue_head_t write_queue;
+	//wait_queue_head_t read_queue;
 
 	//needed for device and class creation.	
 	struct class *Char_driver_class;
@@ -221,6 +229,7 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 
 			ret = BufOut(&Buffer, &char_received);
 			//wakeup write here!
+			wake_up_interruptible(&wq);
 
 			//SEMAPHORE UP
 			up(&BDev.SemBuf);
@@ -236,6 +245,11 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 				} else {
 				//BLOQUANT
 					printk(KERN_WARNING"Char_driver supposed to BLOCK\n");
+					wait_event_interruptible(rq, (Buffer.InIdx != Buffer.OutIdx));
+					//Need to decrement i because on wake up is displaying twice last character.
+					i -= 1;
+					number_of_bytes_transfered -= 1;
+					//wait_event_interruptible(rq, GetNumData > 0);					
 				} 
 			}
 			//put inside temp buff for user.
@@ -257,6 +271,7 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 
 			ret = BufOut(&Buffer, &char_received);
 			//wakeup write here!
+			wake_up_interruptible(&wq);
 
 			//SEMAPHORE UP			
 			up(&BDev.SemBuf);
@@ -272,6 +287,11 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 				} else {
 				//BLOQUANT
 					printk(KERN_WARNING"Char_driver supposed to BLOCK\n");
+					wait_event_interruptible(rq, (Buffer.InIdx != Buffer.OutIdx));
+					//Need to decrement i because on wake up is displaying twice last character.
+					i -= 1;
+					number_of_bytes_transfered -= 1;
+					//wait_event_interruptible(rq, GetNumData > 0);
 				}
  
 			}
@@ -313,6 +333,7 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 
 			ret = BufIn(&Buffer, &char_to_transfer);
 			//wakeup read here!
+			wake_up_interruptible(&rq);
 
 			//SEMAPHORE UP
 			up(&BDev.SemBuf);
@@ -327,6 +348,9 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 				}  else {
 				//BLOQUANT
 					printk(KERN_WARNING"Char_driver supposed to BLOCK\n");
+					wait_event_interruptible(wq, (Buffer.InIdx != Buffer.OutIdx));
+					i -= 1;
+					number_of_bytes_transfered -= 1;
 				} 
 			} 	
 			number_of_bytes_transfered++;
@@ -347,6 +371,7 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 
 			ret = BufIn(&Buffer, &char_to_transfer);
 			//wakeup read here!
+			wake_up_interruptible(&rq);
 
 			//SEMAPHORE UP
 			up(&BDev.SemBuf);			
@@ -361,6 +386,9 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 				} else {
 				//BLOQUANT
 					printk(KERN_WARNING"Char_driver supposed to BLOCK\n");
+					wait_event_interruptible(wq, (Buffer.InIdx != Buffer.OutIdx));
+					i -= 1;
+					number_of_bytes_transfered -= 1;
 				} 
 			}	
 			number_of_bytes_transfered++;
@@ -431,8 +459,15 @@ static long Char_driver_ioctl(struct file *filp, unsigned int cmd, unsigned long
 
 		case BUFFER_IOCTL_SETSIZE : 		
 
-													//PERMISSION ADMIN?
+													//PERMISSION ADMIN
+													/*
+													if (!capable(CAP_SYS_ADMIN)){
+													 printk(KERN_WARNING"Char_driver NO CAP_SYS_ADMIN??\n");
+               								 return -EACCES;
+													}*/
+
 													//SEMAPHORE WILL GO HERE!
+													down_interruptible(&BDev.SemBuf);
 													//printk(KERN_WARNING"Char_driver_IOCTL_SETSIZE (%s:%u), You want to change size to : %d\n", __FUNCTION__, __LINE__,);
 													ret = __get_user(tmp, (int __user *)arg);
 													//local scope.
@@ -450,6 +485,7 @@ static long Char_driver_ioctl(struct file *filp, unsigned int cmd, unsigned long
 														//First, check if number of data present in buffer is larger than user new buffer size.
 														if(number_of_data > new_buffer_size)
 														{
+															up(&BDev.SemBuf);
 															return -EPERM;
 														}
 
@@ -496,7 +532,7 @@ static long Char_driver_ioctl(struct file *filp, unsigned int cmd, unsigned long
 														
 													}//end local scope 1
 													
-													
+													up(&BDev.SemBuf);
 
 													
 													break;
@@ -607,7 +643,7 @@ static int __init Char_driver_init (void) {
 
 	//init BufFull, BufEmpty.
 	Buffer.BufFull = 0;
-	Buffer.BufEmpty = 1;//mpty at start?
+	Buffer.BufEmpty = 1;//empty at start
 
 	//init number of writer and reader.
 	BDev.numWriter = 0;
@@ -616,6 +652,10 @@ static int __init Char_driver_init (void) {
 	//init du semaphore
 	//BDev.SemBuf
 	sema_init(&BDev.SemBuf,1);//1 for unlocked.
+
+	//init write, read queue
+	//init_waitqueue_head(&BDev.write_queue);
+	//init_waitqueue_head(&BDev.read_queue);
 
 	return 0;
 }
