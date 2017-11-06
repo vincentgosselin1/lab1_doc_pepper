@@ -203,6 +203,11 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 	int i;//index to retrieve one char at the time from circular buffer.
 	int number_of_bytes_transfered = 0; //Returned value of the "read".
 	
+	//init BDev.tampon_for_user to empty before any actions on it.
+	for(i=0;i<DEFAULT_TEMP_BUF;i++){
+		BDev.tampon_for_user[i] = ' ';	
+	}
+
 	//Receive blocs of 16 characters everytime from circular buffer.
 	for(j=0;j<number_of_tempbuf_to_receive;j++)
 	{
@@ -218,9 +223,11 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 			//SEMAPHORE UP
 
 			if(ret<0) { 
-				printk(KERN_WARNING"Buffer is EMPTY\n");
+				printk(KERN_WARNING"Char_driver Buffer is EMPTY\n");
 				//Something to do here.
-				return -EPERM; 
+				//return -EPERM;
+				copy_to_user((buf+index_for_string_reconstruct), BDev.tampon_for_user, number_of_bytes_transfered);
+				return number_of_bytes_transfered;  
 			}
 			//put inside temp buff for user.
 			BDev.tampon_for_user[i] = char_received;
@@ -243,9 +250,11 @@ static ssize_t Char_driver_read(struct file *filp, char __user *buf, size_t coun
 			//SEMAPHORE UP			
 
 			if(ret<0) { 
-				printk(KERN_WARNING"Buffer is EMPTY\n");
+				printk(KERN_WARNING"Char_driver Buffer is EMPTY\n");
 				//Something to do here.
-				return -EPERM;
+				//return -EPERM;
+				copy_to_user((buf+index_for_string_reconstruct), BDev.tampon_for_user, number_of_char_in_last_transfer);
+				return number_of_bytes_transfered; 
 			}
 			//put inside temp buff for user.
 			BDev.tampon_for_user[i] = char_received;
@@ -291,7 +300,9 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 			if(ret<0) { 
 				printk(KERN_WARNING"Char_driver Buffer is FULL\n");
 				//Something to do here.
-				return -EPERM; 
+				//return -EPERM;
+				copy_from_user(BDev.tampon_from_user, (buf+index_from_user_input), number_of_bytes_transfered);
+				return number_of_bytes_transfered;  
 			}
 			number_of_bytes_transfered++;
 		}
@@ -317,7 +328,9 @@ static ssize_t Char_driver_write(struct file *filp, const char __user *buf, size
 			if(ret<0) { 
 				printk(KERN_WARNING"Char_driver Buffer is FULL\n");
 				//Something to do here.
-				return -EPERM;
+				//return -EPERM;
+				copy_from_user(BDev.tampon_from_user, (buf+index_from_user_input), number_of_char_in_last_transfer);
+				return number_of_bytes_transfered; 
 			}
 			number_of_bytes_transfered++;
 		}
