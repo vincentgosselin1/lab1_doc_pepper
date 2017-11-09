@@ -74,9 +74,21 @@ int scan_input(){
 }
 
 char * scan_text_input(){
+	
+	
+	//GOOD ONE
 	//user_text_input is used to store user input.
 	scanf("%s", user_text_input);
 	return user_text_input;
+	
+
+	/*
+	char * buffer = user_text_input;
+	size_t buf_size = 256;
+	getline(&buffer,&buf_size,stdin);
+	return buffer;
+	*/
+	
 }
 
 void execute(int choice){

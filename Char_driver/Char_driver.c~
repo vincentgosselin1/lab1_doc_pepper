@@ -465,6 +465,7 @@ static long Char_driver_ioctl(struct file *filp, unsigned int cmd, unsigned long
 													 printk(KERN_WARNING"Char_driver NO CAP_SYS_ADMIN??\n");
                								 return -EACCES;
 													}*/
+
 													//SEMAPHORE WILL GO HERE!
 													down_interruptible(&BDev.SemBuf);
 													//printk(KERN_WARNING"Char_driver_IOCTL_SETSIZE (%s:%u), You want to change size to : %d\n", __FUNCTION__, __LINE__,);
